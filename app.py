@@ -1,35 +1,74 @@
-from fastapi import FastAPI, Request, Form
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
 import pickle
 import re
 
-app = FastAPI()
+# -------------------- App Setup --------------------
+
+app = FastAPI(title="Phishing Website Detection")
 templates = Jinja2Templates(directory="templates")
 
-vector = pickle.load(open("vectorizer.pkl", 'rb'))
-model = pickle.load(open("phishing.pkl", 'rb'))
+# Load ML artifacts once at startup (good practice)
+try:
+    vectorizer = pickle.load(open("vectorizer.pkl", "rb"))
+    model = pickle.load(open("phishing.pkl", "rb"))
+except Exception as e:
+    raise RuntimeError(f"Failed to load ML models: {e}")
 
+# -------------------- UI ROUTE --------------------
 
 @app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+async def home(request: Request):
+    """
+    Serves the HTML user interface.
+    """
+    return templates.TemplateResponse(
+        "index.html",
+        {"request": request}
+    )
 
+# -------------------- API SCHEMAS --------------------
 
-@app.post("/", response_class=HTMLResponse)
-async def predict_phishing(request: Request, url: str = Form(...)):
-    cleaned_url = re.sub(r'^https?://(www\.)?', '', url)
-    
-    predict = model.predict(vector.transform([cleaned_url]))[0]
-    
-    if predict == 'bad':
-        prediction_message = "This is a Phishing website !!"
-    elif predict == 'good':
-        prediction_message = "This is healthy and good website !!"
+class PredictRequest(BaseModel):
+    url: str
+
+class PredictResponse(BaseModel):
+    prediction: str   # "phishing" or "safe"
+    label: int        # 1 = phishing, 0 = safe
+
+# -------------------- ML PREDICTION API --------------------
+
+@app.post("/predict", response_model=PredictResponse)
+async def predict(data: PredictRequest):
+    """
+    JSON API used by both the UI (via fetch) and Chrome extension.
+    """
+
+    # Basic validation
+    if not data.url.startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="Invalid URL format")
+
+    # Normalize URL
+    cleaned_url = re.sub(r'^https?://(www\.)?', '', data.url)
+
+    try:
+        result = model.predict(vectorizer.transform([cleaned_url]))[0]
+    except Exception:
+        raise HTTPException(status_code=500, detail="Prediction failed")
+
+    # Normalize output (good practice)
+    if result == "bad":
+        return {
+            "prediction": "phishing",
+            "label": 1
+        }
     else:
-        prediction_message = "Something went wrong !!"
-    
-    return templates.TemplateResponse("index.html", {"request": request, "predict": prediction_message})
+        return {
+            "prediction": "safe",
+            "label": 0
+        }
 
-# To run this FastAPI application, you would typically use a command like:
+# -------------------- RUN SERVER --------------------
 # uvicorn app:app --reload
