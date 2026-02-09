@@ -48,18 +48,4 @@ You can test the application with the following URLs:
 - `http://www.update-browser.com/`
 - `http://www.facebook-login-security-check.com/`
 - `http://www.paypal-secure-login.com/`
- 1. Initialize a new Git repository (if you haven't       
-      already):
-   1     git init
-   2. Add all the files to the staging area:
-   1     git add .
-   3. Commit the files:
-
-   1     git commit -m "Initial commit"
-   4. Create a new repository on GitHub.
-   5. Add the remote repository:
-   1     git remote add origin
-     https://github.com/your-username/your-repository-name.g
-   6. Push the code to GitHub:
-
-   1     git push -u origin main
+ 
