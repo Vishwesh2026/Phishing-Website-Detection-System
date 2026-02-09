@@ -1,110 +1,64 @@
 <!doctype html>
 <html lang="en">
-  <head>
+
+<head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="https://cdn.tailwindcss.com"></script>
-    <title>Phishng Website Detection</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-      integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT"
-      crossorigin="anonymous"
-    />
-  </head>
-  <body>
-    <!-- hero - start -->
-    <div class="bg-white pb-6 sm:pb-8 lg:pb-12">
-      <div class="mx-auto max-w-screen-2xl px-4 md:px-8">
-        <header class="mb-4 flex items-center justify-between py-4 md:py-8">
-          <!-- logo - start -->
-          <a
-            href="/"
-            class="inline-flex items-center gap-2.5 text-2xl font-bold text-black md:text-3xl"
-            aria-label="logo"
-          >
-            Phishng Website Detection
-          </a>
-          <!-- logo - end -->
+    <title>Phishing Website Detection</title>
+</head>
 
-          <!-- nav - start -->
-          <nav class="hidden gap-12 lg:flex">
-            <a href="#" class="text-lg font-semibold text-indigo-500">Home</a>
-            <a
-              href="#"
-              class="text-lg font-semibold text-gray-600 transition duration-100 hover:text-indigo-500 active:text-indigo-700"
-              >Detection</a
-            >
-            <a
-              href="#"
-              class="text-lg font-semibold text-gray-600 transition duration-100 hover:text-indigo-500 active:text-indigo-700"
-              >About</a
-            >
-          </nav>
-          <!-- nav - end -->
+<body class="bg-white">
 
-          
-        </header>
+    <div class="max-w-xl mx-auto mt-20 p-6 border rounded-lg shadow">
+        <h2 class="text-2xl font-bold text-center mb-6">
+            Phishing Website Detection
+        </h2>
 
-        <div class="bg-white py-6 sm:py-8 lg:py-12">
-          <div class="mx-auto max-w-screen-2xl px-4 md:px-8">
-            <!-- text - start -->
-            <div class="mb-10 md:mb-16">
-              <h2
-                class="mb-4 text-center text-2xl font-bold text-gray-800 md:mb-6 lg:text-3xl"
-              >
-                Phishng Website Detection
-              </h2>
+        <form id="predictForm" class="space-y-4">
+            <input id="url" type="text" placeholder="https://example.com" required
+                class="w-full border rounded px-3 py-2" />
 
-              <br />
+            <button type="submit" class="w-full bg-indigo-500 text-white py-2 rounded hover:bg-indigo-600">
+                Check Website
+            </button>
+        </form>
 
-              <p
-                class="mx-auto max-w-screen-md text-center md:text-lg text-success"
-              >
-                {{predict}}
-              </p>
-            </div>
-            <!-- text - end -->
-
-            <!-- form - start -->
-            <form
-              class="mx-auto grid max-w-screen-md gap-4 sm:grid-cols-2"
-              method="POST"
-              action="/"
-            >
-              <div class="sm:col-span-2">
-                <label
-                  for="url"
-                  class="mb-2 inline-block text-sm text-gray-800 sm:text-base"
-                  >Enter Website URL</label
-                >
-                <input
-                  name="url"
-                  id="url"
-                  type="text"
-                  class="w-full rounded border bg-gray-50 px-3 py-2 text-gray-800 outline-none ring-indigo-300 transition duration-100 focus:ring"
-                />
-              </div>
-
-              <div class="flex items-center justify-between sm:col-span-2">
-                <button
-                  class="inline-block rounded-lg bg-indigo-500 px-8 py-3 text-center text-sm font-semibold text-white outline-none ring-indigo-300 transition duration-100 hover:bg-indigo-600 focus-visible:ring active:bg-indigo-700 md:text-base"
-                >
-                  Submit
-                </button>
-              </div>
-            </form>
-            <!-- form - end -->
-          </div>
-        </div>
-      </div>
+        <p id="result" class="text-center mt-6 font-semibold"></p>
     </div>
-    <!-- hero - end -->
 
-    <script
-      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"
-      integrity="sha384-j1CDi7MgGQ12Z7Qab0qlWQ/Qqz24Gc6BM0thvEMVjHnfYGF0rmFCozFSxQBxwHKO"
-      crossorigin="anonymous"
-    ></script>
-  </body>
+    <script>
+        document.getElementById("predictForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const url = document.getElementById("url").value;
+            const result = document.getElementById("result");
+
+            result.textContent = "Checking...";
+
+            try {
+                const response = await fetch("/predict", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ url })
+                });
+
+                const data = await response.json();
+
+                if (data.label === 1) {
+                    result.textContent = "⚠️ This is a phishing website!";
+                    result.className = "text-red-600 text-center font-semibold";
+                } else {
+                    result.textContent = "✅ This website is safe.";
+                    result.className = "text-green-600 text-center font-semibold";
+                }
+            } catch {
+                result.textContent = "❌ Error checking website.";
+                result.className = "text-red-600 text-center font-semibold";
+            }
+        });
+    </script>
+
+</body>
+
 </html>

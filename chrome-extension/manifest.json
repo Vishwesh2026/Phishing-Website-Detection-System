@@ -1,0 +1,20 @@
+{
+    "manifest_version": 3,
+    "name": "Phishing Detector",
+    "description": "Detects phishing websites using ML",
+    "version": "1.0",
+    "permissions": [
+        "tabs",
+        "activeTab",
+        "notifications"
+    ],
+    "host_permissions": [
+        "http://127.0.0.1:8000/*"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "action": {
+        "default_title": "Phishing Detector"
+    }
+}
