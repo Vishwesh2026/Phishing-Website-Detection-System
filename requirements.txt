@@ -7,6 +7,7 @@ fastapi==0.115.6
 uvicorn[standard]==0.32.1
 gunicorn==23.0.0
 python-multipart==0.0.20
+Jinja2==3.1.5
 
 # ── Config & Validation ───────────────────────────────────────
 pydantic==2.10.3
@@ -35,3 +36,6 @@ structlog==24.4.0
 
 # ── HTTP Client (async, for integration tests) ────────────────
 httpx==0.28.1
+
+# ── WHOIS domain intelligence ─────────────────────────────────────────────────
+python-whois==0.9.4

@@ -4,11 +4,11 @@
  * Reads the cached prediction from chrome.storage.local
  * (written by background.js) and renders the result UI.
  *
- * If no cached result exists for the current tab,
- * it triggers a fresh API call inline.
+ * Feature: Deep Analysis CTA & WHOIS Integration
  */
 
-const API_URL = "http://127.0.0.1:8000/api/v1/predict";
+const BASE_URL = "http://127.0.0.1:8000";
+const API_URL = `${BASE_URL}/api/v1/predict`;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -33,7 +33,6 @@ function riskToBarClass(label, riskLevel) {
     return "warning";
 }
 
-
 // ── Render functions ──────────────────────────────────────────────────────────
 
 function renderResult(data) {
@@ -42,17 +41,44 @@ function renderResult(data) {
 
     const isSafe = data.label === 0;
     const confidencePct = Math.round((data.confidence ?? 0) * 100);
+    const latency = data.latency_ms != null ? `${data.latency_ms.toFixed(1)} ms` : "—";
+    const modelVer = data.model_version ?? "—";
+
     const domain = getDomain(data.url ?? "");
     const cardClass = riskToCardClass(data.risk_level, data.label);
     const barClass = riskToBarClass(data.label, data.risk_level);
-    const latency = data.latency_ms != null ? `${data.latency_ms.toFixed(1)} ms` : "—";
-    const modelVer = data.model_version ?? "—";
 
     const verdictIcon = isSafe ? "✅" : (data.risk_level === "HIGH" ? "🚨" : "⚠️");
     const verdictLabel = isSafe ? "SAFE" : `PHISHING — ${data.risk_level} RISK`;
     const verdictSub = isSafe
         ? `${confidencePct}% confidence — No threat detected`
         : `${confidencePct}% phishing probability`;
+
+    // ── WHOIS section ────────────────────────────────────────────────────────
+    const di = data.domain_info;
+    let whoisHtml = "";
+
+    if (di && di.whois_available) {
+        const newDomainTag = di.is_new_domain ? `<span style="color:#f87171;font-size:10px;margin-left:5px;">⚠️ New</span>` : "";
+
+        whoisHtml = `
+            <div style="margin-top:12px; border-top:1px solid #1e293b; padding-top:12px;">
+                <div style="font-size:10px; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">
+                    🌐 Domain Intelligence ${newDomainTag}
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                    <div style="background:#0f172a; border-radius:6px; padding:6px 8px;">
+                        <div style="font-size:9px; color:#475569;">AGE</div>
+                        <div style="font-size:11px; font-weight:600;">${di.domain_age || "Unknown"}</div>
+                    </div>
+                    <div style="background:#0f172a; border-radius:6px; padding:6px 8px;">
+                        <div style="font-size:9px; color:#475569;">REGISTRAR</div>
+                        <div style="font-size:11px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${di.registrar || "—"}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
 
     content.innerHTML = `
         <div class="result">
@@ -91,19 +117,24 @@ function renderResult(data) {
                     <div class="label">Latency</div>
                     <div class="value">${latency}</div>
                 </div>
-                <div class="meta-item">
-                    <div class="label">Model</div>
-                    <div class="value">${modelVer}</div>
-                </div>
-                <div class="meta-item">
-                    <div class="label">Checked At</div>
-                    <div class="value">${data.checked_at ? new Date(data.checked_at).toLocaleTimeString() : "—"}</div>
-                </div>
             </div>
+
+            ${whoisHtml}
+
+            <!-- View Detailed Analysis CTA -->
+            <button id="deepAnalysisBtn" class="btn btn-primary">
+                View Detailed Analysis
+            </button>
         </div>
     `;
 
     footer.textContent = `Phishing Detector Pro • ${modelVer}`;
+
+    // Securely attach event listener
+    document.getElementById("deepAnalysisBtn")?.addEventListener("click", () => {
+        const deepUrl = `${BASE_URL}/?url=${encodeURIComponent(data.url)}`;
+        chrome.tabs.create({ url: deepUrl });
+    });
 }
 
 function renderError(message) {
@@ -144,7 +175,8 @@ function renderChecking() {
 async function main() {
     let tab;
     try {
-        [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        tab = tabs[0];
     } catch (err) {
         renderError("Could not access active tab.");
         return;
@@ -200,6 +232,7 @@ async function main() {
             risk_level: data.risk_level,
             model_version: data.model_version,
             latency_ms: data.latency_ms,
+            domain_info: data.domain_info, // WHOIS info added here
             checked_at: new Date().toISOString(),
             error: null,
         };

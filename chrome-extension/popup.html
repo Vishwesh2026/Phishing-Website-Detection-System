@@ -1,12 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Phishing Detector Pro</title>
   <style>
     /* ── Reset & base ─────────────────────────────────────────── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     body {
       width: 320px;
@@ -25,14 +32,22 @@
       padding: 14px 16px 10px;
       border-bottom: 1px solid #1e293b;
     }
-    .header-icon { font-size: 20px; }
+
+    .header-icon {
+      font-size: 20px;
+    }
+
     .header h1 {
       font-size: 14px;
       font-weight: 700;
       letter-spacing: 0.3px;
       color: #f1f5f9;
     }
-    .header p { font-size: 11px; color: #64748b; }
+
+    .header p {
+      font-size: 11px;
+      color: #64748b;
+    }
 
     /* ── Loading state ───────────────────────────────────────── */
     .loading {
@@ -44,17 +59,26 @@
       padding: 32px 20px;
       color: #64748b;
     }
+
     .spinner {
-      width: 28px; height: 28px;
+      width: 28px;
+      height: 28px;
       border: 3px solid #1e293b;
       border-top-color: #6366f1;
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
 
     /* ── Result card ─────────────────────────────────────────── */
-    .result { padding: 16px; }
+    .result {
+      padding: 16px;
+    }
 
     .verdict-card {
       border-radius: 12px;
@@ -65,20 +89,51 @@
       gap: 14px;
       transition: all 0.3s ease;
     }
-    .verdict-card.safe    { background: linear-gradient(135deg, #052e16, #14532d); border: 1px solid #166534; }
-    .verdict-card.phishing-high   { background: linear-gradient(135deg, #2d0a0a, #7f1d1d); border: 1px solid #991b1b; }
-    .verdict-card.phishing-medium { background: linear-gradient(135deg, #1c0a00, #7c2d12); border: 1px solid #9a3412; }
-    .verdict-card.phishing-low    { background: linear-gradient(135deg, #1c1700, #713f12); border: 1px solid #854d0e; }
-    .verdict-card.checking { background: #1e293b; border: 1px solid #334155; }
-    .verdict-card.error   { background: #1e293b; border: 1px solid #334155; }
 
-    .verdict-icon { font-size: 32px; line-height: 1; flex-shrink: 0; }
+    .verdict-card.safe {
+      background: linear-gradient(135deg, #052e16, #14532d);
+      border: 1px solid #166534;
+    }
+
+    .verdict-card.phishing-high {
+      background: linear-gradient(135deg, #2d0a0a, #7f1d1d);
+      border: 1px solid #991b1b;
+    }
+
+    .verdict-card.phishing-medium {
+      background: linear-gradient(135deg, #1c0a00, #7c2d12);
+      border: 1px solid #9a3412;
+    }
+
+    .verdict-card.phishing-low {
+      background: linear-gradient(135deg, #1c1700, #713f12);
+      border: 1px solid #854d0e;
+    }
+
+    .verdict-card.checking {
+      background: #1e293b;
+      border: 1px solid #334155;
+    }
+
+    .verdict-card.error {
+      background: #1e293b;
+      border: 1px solid #334155;
+    }
+
+    .verdict-icon {
+      font-size: 32px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
     .verdict-text {}
+
     .verdict-label {
       font-size: 16px;
       font-weight: 700;
       line-height: 1.2;
     }
+
     .verdict-sub {
       font-size: 11px;
       margin-top: 3px;
@@ -86,7 +141,10 @@
     }
 
     /* ── Confidence bar ──────────────────────────────────────── */
-    .confidence-section { margin-bottom: 14px; }
+    .confidence-section {
+      margin-bottom: 14px;
+    }
+
     .confidence-label {
       display: flex;
       justify-content: space-between;
@@ -94,21 +152,36 @@
       color: #94a3b8;
       margin-bottom: 5px;
     }
-    .confidence-value { font-weight: 700; color: #e2e8f0; }
+
+    .confidence-value {
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
     .bar-track {
       height: 8px;
       background: #1e293b;
       border-radius: 99px;
       overflow: hidden;
     }
+
     .bar-fill {
       height: 100%;
       border-radius: 99px;
       transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .bar-fill.safe    { background: linear-gradient(90deg, #16a34a, #4ade80); }
-    .bar-fill.danger  { background: linear-gradient(90deg, #dc2626, #f87171); }
-    .bar-fill.warning { background: linear-gradient(90deg, #d97706, #fbbf24); }
+
+    .bar-fill.safe {
+      background: linear-gradient(90deg, #16a34a, #4ade80);
+    }
+
+    .bar-fill.danger {
+      background: linear-gradient(90deg, #dc2626, #f87171);
+    }
+
+    .bar-fill.warning {
+      background: linear-gradient(90deg, #d97706, #fbbf24);
+    }
 
     /* ── Meta info ───────────────────────────────────────────── */
     .meta {
@@ -116,13 +189,26 @@
       grid-template-columns: 1fr 1fr;
       gap: 8px;
     }
+
     .meta-item {
       background: #1e293b;
       border-radius: 8px;
       padding: 8px 10px;
     }
-    .meta-item .label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
-    .meta-item .value { font-size: 12px; font-weight: 600; margin-top: 2px; color: #e2e8f0; }
+
+    .meta-item .label {
+      font-size: 10px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .meta-item .value {
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 2px;
+      color: #e2e8f0;
+    }
 
     /* ── Domain strip ────────────────────────────────────────── */
     .domain-strip {
@@ -134,7 +220,13 @@
       color: #94a3b8;
       word-break: break-all;
     }
-    .domain-strip strong { color: #e2e8f0; display: block; font-size: 12px; margin-bottom: 2px; }
+
+    .domain-strip strong {
+      color: #e2e8f0;
+      display: block;
+      font-size: 12px;
+      margin-bottom: 2px;
+    }
 
     /* ── Footer ──────────────────────────────────────────────── */
     .footer {
@@ -143,8 +235,39 @@
       color: #334155;
       text-align: center;
     }
+
+    /* ── Buttons ─────────────────────────────────────────────── */
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+      margin-top: 14px;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: #6366f1;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #4f46e5;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
   </style>
 </head>
+
 <body>
   <div class="header">
     <span class="header-icon">🛡️</span>
@@ -165,4 +288,5 @@
 
   <script src="popup.js"></script>
 </body>
+
 </html>

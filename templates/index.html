@@ -1,64 +1,543 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <title>Phishing Website Detection</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SafeSurf — Phishing Website Detector</title>
+    <meta name="description" content="ML-powered phishing URL detection with WHOIS domain intelligence" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <style>
+        /* ── Reset ─────────────────────────────────────────────── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface2: #263348;
+            --border: #334155;
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --accent: #6366f1;
+            --safe: #16a34a;
+            --safe-bg: #052e16;
+            --danger: #dc2626;
+            --danger-bg: #450a0a;
+            --warn: #d97706;
+            --warn-bg: #431407;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 2rem 1rem 4rem;
+        }
+
+        /* ── Layout ────────────────────────────────────────────── */
+        .container {
+            max-width: 780px;
+            margin: 0 auto;
+        }
+
+        /* ── Header ────────────────────────────────────────────── */
+        .header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .header .logo {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            color: var(--muted);
+            margin-top: 0.4rem;
+        }
+
+        /* ── Card ──────────────────────────────────────────────── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 1.25rem;
+        }
+
+        /* ── Input form ────────────────────────────────────────── */
+        .input-group {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .input-group input {
+            flex: 1;
+            background: var(--bg);
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            font-size: 0.95rem;
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+            transition: border-color 0.2s;
+            outline: none;
+        }
+
+        .input-group input::placeholder {
+            color: var(--muted);
+        }
+
+        .input-group input:focus {
+            border-color: var(--accent);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            border: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            white-space: nowrap;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* ── Verdict card ──────────────────────────────────────── */
+        .verdict-card {
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .verdict-card.safe {
+            background: var(--safe-bg);
+            border: 1px solid #166534;
+        }
+
+        .verdict-card.phishing-high {
+            background: var(--danger-bg);
+            border: 1px solid #991b1b;
+        }
+
+        .verdict-card.phishing-medium {
+            background: #1c0d00;
+            border: 1px solid #9a3412;
+        }
+
+        .verdict-card.phishing-low {
+            background: var(--warn-bg);
+            border: 1px solid #854d0e;
+        }
+
+        .verdict-icon {
+            font-size: 2.2rem;
+            line-height: 1;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .verdict-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+
+        .verdict-sub {
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+            opacity: 0.75;
+        }
+
+        /* ── Confidence bar ────────────────────────────────────── */
+        .section-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .bar-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .bar-val {
+            font-weight: 700;
+        }
+
+        .bar-track {
+            height: 8px;
+            background: var(--bg);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 99px;
+            transition: width 0.7s cubic-bezier(.4, 0, .2, 1);
+        }
+
+        .bar-fill.safe {
+            background: linear-gradient(90deg, var(--safe), #4ade80);
+        }
+
+        .bar-fill.danger {
+            background: linear-gradient(90deg, var(--danger), #f87171);
+        }
+
+        .bar-fill.warn {
+            background: linear-gradient(90deg, var(--warn), #fbbf24);
+        }
+
+        /* ── Meta grid ─────────────────────────────────────────── */
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .meta-item {
+            background: var(--surface2);
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+        }
+
+        .meta-item .lbl {
+            font-size: 0.7rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .meta-item .val {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-top: 0.25rem;
+            word-break: break-all;
+        }
+
+        /* ── Domain info section ───────────────────────────────── */
+        .section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.15rem 0.55rem;
+            border-radius: 99px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            vertical-align: middle;
+        }
+
+        .badge-warn {
+            background: #451a03;
+            color: #fb923c;
+            border: 1px solid #92400e;
+        }
+
+        .badge-safe {
+            background: #052e16;
+            color: #4ade80;
+            border: 1px solid #166534;
+        }
+
+        .badge-gray {
+            background: #1e293b;
+            color: #94a3b8;
+            border: 1px solid #334155;
+        }
+
+        .badge-danger {
+            background: #450a0a;
+            color: #f87171;
+            border: 1px solid #991b1b;
+        }
+
+        .ns-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-top: 0.5rem;
+        }
+
+        .ns-tag {
+            background: var(--surface2);
+            color: var(--muted);
+            border-radius: 6px;
+            padding: 0.2rem 0.6rem;
+            font-size: 0.75rem;
+        }
+
+        .whois-unavailable {
+            padding: 1rem;
+            background: var(--surface2);
+            border-radius: 10px;
+            color: var(--muted);
+            font-size: 0.875rem;
+            text-align: center;
+        }
+
+        /* ── Hidden ────────────────────────────────────────────── */
+        .hidden {
+            display: none !important;
+        }
+
+        .error-alert {
+            background: #450a0a;
+            border: 1px solid #991b1b;
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.25rem;
+            color: #f87171;
+            font-size: 0.9rem;
+        }
+    </style>
 </head>
 
-<body class="bg-white">
+<body>
+    <div class="container">
 
-    <div class="max-w-xl mx-auto mt-20 p-6 border rounded-lg shadow">
-        <h2 class="text-2xl font-bold text-center mb-6">
-            Phishing Website Detection
-        </h2>
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">🛡️</div>
+            <h1>SafeSurf — Phishing Detector</h1>
+            <p>ML-powered detection + WHOIS domain intelligence</p>
+        </div>
 
-        <form id="predictForm" class="space-y-4">
-            <input id="url" type="text" placeholder="https://example.com" required
-                class="w-full border rounded px-3 py-2" />
+        <!-- Input Card -->
+        <div class="card">
+            <form action="/predict" method="POST" class="input-group">
+                <input name="url" type="url" required placeholder="https://example.com" value="{{ url if url else '' }}"
+                    autocomplete="off" autocorrect="off" spellcheck="false" />
+                <button type="submit" class="btn btn-primary">
+                    Check URL
+                </button>
+            </form>
+        </div>
 
-            <button type="submit" class="w-full bg-indigo-500 text-white py-2 rounded hover:bg-indigo-600">
-                Check Website
-            </button>
-        </form>
+        <!-- Error Message -->
+        {% if error %}
+        <div class="error-alert">
+            <strong>Error:</strong> {{ error }}
+        </div>
+        {% endif %}
 
-        <p id="result" class="text-center mt-6 font-semibold"></p>
+        <!-- Result Section -->
+        {% if result %}
+        <div id="resultSection">
+
+            <!-- Verdict -->
+            {% set risk = result.risk_level %}
+            {% set is_phishing = result.label == 1 %}
+            {% set conf_pct = (result.confidence * 100)|round|int %}
+
+            {% if not is_phishing %}
+            <div class="verdict-card safe">
+                <div class="verdict-icon">✅</div>
+                <div>
+                    <div class="verdict-title">SAFE</div>
+                    <div class="verdict-sub">{{ conf_pct }}% confidence — No threat detected</div>
+                </div>
+            </div>
+            {% else %}
+            {% set v_class = 'phishing-high' if risk == 'HIGH' else 'phishing-medium' if risk == 'MEDIUM' else
+            'phishing-low' %}
+            {% set v_icon = '🚨' if risk == 'HIGH' else '⚠️' %}
+            <div class="verdict-card {{ v_class }}">
+                <div class="verdict-icon">{{ v_icon }}</div>
+                <div>
+                    <div class="verdict-title">PHISHING — {{ risk }} RISK</div>
+                    <div class="verdict-sub">{{ conf_pct }}% phishing probability detected</div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Confidence + Meta -->
+            <div class="card">
+                <div class="section-label">Confidence Score</div>
+                <div class="bar-row">
+                    <span>{{ 'Phishing Probability' if is_phishing else 'Legitimacy Confidence' }}</span>
+                    <span class="bar-val">{{ conf_pct }}%</span>
+                </div>
+                <div class="bar-track">
+                    {% set bar_c = 'safe' if not is_phishing else 'danger' if risk == 'HIGH' else 'warn' %}
+                    <div class="bar-fill {{ bar_c }}" style="width:{{ conf_pct }}%"></div>
+                </div>
+
+                <div style="margin-top:1.25rem;">
+                    <div class="section-label">Prediction Details</div>
+                    <div class="meta-grid">
+                        <div class="meta-item">
+                            <div class="lbl">Prediction</div>
+                            <div class="val">{{ '⚠ Phishing' if is_phishing else '✓ Safe' }}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="lbl">Risk Level</div>
+                            <div class="val">{{ risk }}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="lbl">Model</div>
+                            <div class="val">{{ result.model_version }}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="lbl">Latency</div>
+                            <div class="val">{{ result.latency_ms|round(1) }} ms</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Domain Info -->
+            <div class="card">
+                {% set di = result.domain_info %}
+                <div class="section-title">
+                    🌐 Domain Information
+                    {% if di.whois_available %}
+                    {% if di.is_new_domain %}
+                    <span class="badge badge-warn">⚠ New Domain</span>
+                    {% elif di.domain_age %}
+                    <span class="badge badge-safe">{{ di.domain_age }}</span>
+                    {% endif %}
+                    {% endif %}
+                </div>
+
+                <div id="domainInfoBody">
+                    {% if not di.whois_available %}
+                    <div class="whois-unavailable">🔍 WHOIS data not available for this domain.</div>
+                    {% else %}
+
+                    {% if di.is_new_domain and di.creation_date %}
+                    <div
+                        style="background:#450a0a;border:1px solid #991b1b;border-radius:10px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.875rem;color:#f87171;">
+                        🚨 <strong>Newly registered domain</strong> — created {{ di.creation_date }}.
+                        New domains are a common phishing indicator.
+                    </div>
+                    {% endif %}
+
+                    {% if di.is_expiring_soon and di.expiration_date %}
+                    <div
+                        style="background:#451a03;border:1px solid #92400e;border-radius:10px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.875rem;color:#fb923c;">
+                        ⚠️ <strong>Domain expires soon</strong> — {{ di.expiration_date }}
+                    </div>
+                    {% endif %}
+
+                    <div class="meta-grid">
+                        {% if di.domain %}<div class="meta-item">
+                            <div class="lbl">Domain</div>
+                            <div class="val">{{ di.domain }}</div>
+                        </div>{% endif %}
+                        {% if di.registrar %}<div class="meta-item">
+                            <div class="lbl">Registrar</div>
+                            <div class="val">{{ di.registrar }}</div>
+                        </div>{% endif %}
+                        {% if di.org %}<div class="meta-item">
+                            <div class="lbl">Organisation</div>
+                            <div class="val">{{ di.org }}</div>
+                        </div>{% endif %}
+                        {% if di.country %}<div class="meta-item">
+                            <div class="lbl">Country</div>
+                            <div class="val">{{ di.country }}</div>
+                        </div>{% endif %}
+                        {% if di.creation_date %}<div class="meta-item">
+                            <div class="lbl">Created</div>
+                            <div class="val">{{ di.creation_date }}</div>
+                        </div>{% endif %}
+                        {% if di.expiration_date %}<div class="meta-item">
+                            <div class="lbl">Expires</div>
+                            <div class="val">{{ di.expiration_date }}</div>
+                        </div>{% endif %}
+                        {% if di.updated_date %}<div class="meta-item">
+                            <div class="lbl">Last Updated</div>
+                            <div class="val">{{ di.updated_date }}</div>
+                        </div>{% endif %}
+                        {% if di.domain_age %}<div class="meta-item">
+                            <div class="lbl">Domain Age</div>
+                            <div class="val">{{ di.domain_age }}</div>
+                        </div>{% endif %}
+                    </div>
+
+                    {% if di.status %}
+                    <div style="margin-top:1rem;">
+                        <div class="section-label">Domain Status</div>
+                        <div class="ns-list">
+                            {% for s in di.status[:6] %}
+                            <span class="ns-tag">{{ s }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if di.name_servers %}
+                    <div style="margin-top:1rem;">
+                        <div class="section-label">Name Servers</div>
+                        <div class="ns-list">
+                            {% for ns in di.name_servers[:8] %}
+                            <span class="ns-tag">{{ ns }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+        {% endif %}
+
     </div>
-
-    <script>
-        document.getElementById("predictForm").addEventListener("submit", async (e) => {
-            e.preventDefault();
-
-            const url = document.getElementById("url").value;
-            const result = document.getElementById("result");
-
-            result.textContent = "Checking...";
-
-            try {
-                const response = await fetch("/predict", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ url })
-                });
-
-                const data = await response.json();
-
-                if (data.label === 1) {
-                    result.textContent = "⚠️ This is a phishing website!";
-                    result.className = "text-red-600 text-center font-semibold";
-                } else {
-                    result.textContent = "✅ This website is safe.";
-                    result.className = "text-green-600 text-center font-semibold";
-                }
-            } catch {
-                result.textContent = "❌ Error checking website.";
-                result.className = "text-red-600 text-center font-semibold";
-            }
-        });
-    </script>
-
 </body>
 
 </html>
