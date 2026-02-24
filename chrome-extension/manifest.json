@@ -1,20 +1,33 @@
 {
     "manifest_version": 3,
-    "name": "Phishing Detector",
-    "description": "Detects phishing websites using ML",
-    "version": "1.0",
+    "name": "Phishing Detector Pro",
+    "description": "Real-time ML-powered phishing detection with confidence scoring",
+    "version": "2.0",
     "permissions": [
         "tabs",
         "activeTab",
-        "notifications"
+        "notifications",
+        "storage"
     ],
     "host_permissions": [
-        "http://127.0.0.1:8000/*"
+        "http://127.0.0.1:8000/*",
+        "https://your-production-api.com/*"
     ],
     "background": {
         "service_worker": "background.js"
     },
     "action": {
-        "default_title": "Phishing Detector"
+        "default_title": "Phishing Detector Pro",
+        "default_popup": "popup.html",
+        "default_icon": {
+            "16": "icons/icon16.png",
+            "48": "icons/icon48.png",
+            "128": "icons/icon128.png"
+        }
+    },
+    "icons": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
     }
 }
