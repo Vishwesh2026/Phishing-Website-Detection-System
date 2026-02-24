@@ -6,11 +6,11 @@
 // Shows badge + notification on phishing detection.
 // ─────────────────────────────────────────────────────────────
 
-const API_URL = "http://127.0.0.1:8000/api/v1/predict";
+const API_URL = "http://127.0.0.1:8000/api/v1/analyze";
 
 // Track last checked URL per tab to avoid duplicate API calls
 const lastCheckedPerTab = new Map();
-const debounceTimers    = new Map();
+const debounceTimers = new Map();
 
 // ── Tab lifecycle listeners ───────────────────────────────────────────────────
 
@@ -54,7 +54,7 @@ async function checkUrl(tabId, url) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ url }),
-            signal: AbortSignal.timeout(8000),   // 8s timeout
+            signal: AbortSignal.timeout(20000),   // 20s timeout (infra extraction ≤15s)
         });
 
         if (!response.ok) {
@@ -70,14 +70,16 @@ async function checkUrl(tabId, url) {
 
         result = {
             url,
-            prediction:  data.prediction,
-            label:       data.label,
-            confidence:  data.confidence,
-            risk_level:  data.risk_level,
+            prediction: data.prediction,
+            label: data.label,
+            confidence: data.confidence,
+            risk_level: data.risk_level,
             model_version: data.model_version,
-            latency_ms:  data.latency_ms,
-            checked_at:  new Date().toISOString(),
-            error:       null,
+            latency_ms: data.latency_ms,
+            domain_info: data.domain_info ?? null,
+            degraded: data.degraded ?? false,
+            checked_at: new Date().toISOString(),
+            error: null,
         };
 
         // ── Update badge ─────────────────────────────────────────────────────
@@ -85,19 +87,19 @@ async function checkUrl(tabId, url) {
 
         if (data.label === 1) {
             // Phishing
-            const badgeColor = data.risk_level === "HIGH"   ? "#dc2626"
-                             : data.risk_level === "MEDIUM" ? "#f97316"
-                             : "#eab308";
+            const badgeColor = data.risk_level === "HIGH" ? "#dc2626"
+                : data.risk_level === "MEDIUM" ? "#f97316"
+                    : "#eab308";
             chrome.action.setBadgeText({ tabId, text: "⚠" });
             chrome.action.setBadgeBackgroundColor({ tabId, color: badgeColor });
 
             // Notification only for HIGH/MEDIUM risk
             if (data.risk_level !== "LOW") {
                 chrome.notifications.create({
-                    type:     "basic",
-                    iconUrl:  "https://cdn-icons-png.flaticon.com/512/564/564619.png",
-                    title:    `⚠️ Phishing Alert — ${data.risk_level} Risk`,
-                    message:  `Confidence: ${confidencePct}% phishing probability detected on this page.`,
+                    type: "basic",
+                    iconUrl: "https://cdn-icons-png.flaticon.com/512/564/564619.png",
+                    title: `⚠️ Phishing Alert — ${data.risk_level} Risk`,
+                    message: `Confidence: ${confidencePct}% phishing probability detected on this page.`,
                     priority: 2,
                 });
             }
@@ -113,14 +115,14 @@ async function checkUrl(tabId, url) {
         chrome.action.setBadgeBackgroundColor({ tabId, color: "#9ca3af" });
         result = {
             url,
-            prediction:  null,
-            label:       null,
-            confidence:  null,
-            risk_level:  null,
+            prediction: null,
+            label: null,
+            confidence: null,
+            risk_level: null,
             model_version: null,
-            latency_ms:  null,
-            checked_at:  new Date().toISOString(),
-            error:       err.message,
+            latency_ms: null,
+            checked_at: new Date().toISOString(),
+            error: err.message,
         };
     }
 

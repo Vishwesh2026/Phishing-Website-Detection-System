@@ -1,0 +1,668 @@
+{
+  "qty_dot_url": {
+    "mean": 2.191343,
+    "std": 1.235636,
+    "min": 1.0,
+    "max": 24.0
+  },
+  "qty_hyphen_url": {
+    "mean": 0.32881,
+    "std": 1.119286,
+    "min": 0.0,
+    "max": 35.0
+  },
+  "qty_underline_url": {
+    "mean": 0.113879,
+    "std": 0.657767,
+    "min": 0.0,
+    "max": 21.0
+  },
+  "qty_slash_url": {
+    "mean": 1.281781,
+    "std": 1.893929,
+    "min": 0.0,
+    "max": 44.0
+  },
+  "qty_questionmark_url": {
+    "mean": 0.009329,
+    "std": 0.112568,
+    "min": 0.0,
+    "max": 9.0
+  },
+  "qty_equal_url": {
+    "mean": 0.205861,
+    "std": 0.954272,
+    "min": 0.0,
+    "max": 23.0
+  },
+  "qty_at_url": {
+    "mean": 0.022133,
+    "std": 0.279652,
+    "min": 0.0,
+    "max": 43.0
+  },
+  "qty_and_url": {
+    "mean": 0.140885,
+    "std": 0.924864,
+    "min": 0.0,
+    "max": 26.0
+  },
+  "qty_exclamation_url": {
+    "mean": 0.002944,
+    "std": 0.087341,
+    "min": 0.0,
+    "max": 10.0
+  },
+  "qty_space_url": {
+    "mean": 0.001015,
+    "std": 0.072653,
+    "min": 0.0,
+    "max": 9.0
+  },
+  "qty_tilde_url": {
+    "mean": 0.003226,
+    "std": 0.078127,
+    "min": 0.0,
+    "max": 5.0
+  },
+  "qty_comma_url": {
+    "mean": 0.002166,
+    "std": 0.075968,
+    "min": 0.0,
+    "max": 11.0
+  },
+  "qty_plus_url": {
+    "mean": 0.002786,
+    "std": 0.110904,
+    "min": 0.0,
+    "max": 19.0
+  },
+  "qty_asterisk_url": {
+    "mean": 0.004535,
+    "std": 0.301651,
+    "min": 0.0,
+    "max": 60.0
+  },
+  "qty_hashtag_url": {
+    "mean": 0.000508,
+    "std": 0.061655,
+    "min": 0.0,
+    "max": 13.0
+  },
+  "qty_dollar_url": {
+    "mean": 0.001895,
+    "std": 0.09973,
+    "min": 0.0,
+    "max": 10.0
+  },
+  "qty_percent_url": {
+    "mean": 0.107505,
+    "std": 1.722625,
+    "min": 0.0,
+    "max": 174.0
+  },
+  "qty_tld_url": {
+    "mean": 1.04748,
+    "std": 0.254755,
+    "min": 0.0,
+    "max": 12.0
+  },
+  "length_url": {
+    "mean": 36.347615,
+    "std": 46.19159,
+    "min": 4.0,
+    "max": 4165.0
+  },
+  "qty_dot_domain": {
+    "mean": 1.870622,
+    "std": 0.705607,
+    "min": 0.0,
+    "max": 21.0
+  },
+  "qty_hyphen_domain": {
+    "mean": 0.114578,
+    "std": 0.421957,
+    "min": 0.0,
+    "max": 11.0
+  },
+  "qty_underline_domain": {
+    "mean": 0.000756,
+    "std": 0.032381,
+    "min": 0.0,
+    "max": 3.0
+  },
+  "qty_slash_domain": {
+    "mean": 0.0,
+    "std": 0.0,
+    "min": 0.0,
+    "max": 0.0
+  },
+  "qty_questionmark_domain": {
+    "mean": 0.0,
+    "std": 0.0,
+    "min": 0.0,
+    "max": 0.0
+  },
+  "qty_equal_domain": {
+    "mean": 0.0,
+    "std": 0.0,
+    "min": 0.0,
+    "max": 0.0
+  },
+  "qty_at_domain": {
+    "mean": 1.1e-05,
+    "std": 0.003359,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "qty_and_domain": {
+    "mean": 0.0,
+    "std": 0.0,
+    "min": 0.0,
+    "max": 0.0
+  },
+  "qty_exclamation_domain": {
+    "mean": 0.0,
+    "std": 0.0,
+    "min": 0.0,
+    "max": 0.0
+  },
+  "qty_space_domain": {
+    "mean": 0.0,
+    "std": 0.0,
+    "min": 0.0,
+    "max": 0.0
+  },
+  "qty_tilde_domain": {
+    "mean": 0.0,
+    "std": 0.0,
+    "min": 0.0,
+    "max": 0.0
+  },
+  "qty_comma_domain": {
+    "mean": 0.0,
+    "std": 0.0,
+    "min": 0.0,
+    "max": 0.0
+  },
+  "qty_plus_domain": {
+    "mean": 0.0,
+    "std": 0.0,
+    "min": 0.0,
+    "max": 0.0
+  },
+  "qty_asterisk_domain": {
+    "mean": 0.0,
+    "std": 0.0,
+    "min": 0.0,
+    "max": 0.0
+  },
+  "qty_hashtag_domain": {
+    "mean": 0.0,
+    "std": 0.0,
+    "min": 0.0,
+    "max": 0.0
+  },
+  "qty_dollar_domain": {
+    "mean": 0.0,
+    "std": 0.0,
+    "min": 0.0,
+    "max": 0.0
+  },
+  "qty_percent_domain": {
+    "mean": 0.0,
+    "std": 0.0,
+    "min": 0.0,
+    "max": 0.0
+  },
+  "qty_vowels_domain": {
+    "mean": 5.44059,
+    "std": 2.541244,
+    "min": 0.0,
+    "max": 61.0
+  },
+  "domain_length": {
+    "mean": 18.56082,
+    "std": 6.598694,
+    "min": 4.0,
+    "max": 231.0
+  },
+  "domain_in_ip": {
+    "mean": 0.002267,
+    "std": 0.047564,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "server_client_domain": {
+    "mean": 0.004501,
+    "std": 0.066939,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "qty_dot_directory": {
+    "mean": 0.457412,
+    "std": 0.777911,
+    "min": 0.0,
+    "max": 19.0
+  },
+  "qty_hyphen_directory": {
+    "mean": 0.377364,
+    "std": 1.26384,
+    "min": 0.0,
+    "max": 23.0
+  },
+  "qty_underline_directory": {
+    "mean": 0.124848,
+    "std": 0.570413,
+    "min": 0.0,
+    "max": 17.0
+  },
+  "qty_slash_directory": {
+    "mean": 2.692766,
+    "std": 1.809644,
+    "min": 1.0,
+    "max": 22.0
+  },
+  "qty_questionmark_directory": {
+    "mean": 0.0,
+    "std": 0.0,
+    "min": 0.0,
+    "max": 0.0
+  },
+  "qty_equal_directory": {
+    "mean": 0.01636,
+    "std": 0.15669,
+    "min": 0.0,
+    "max": 5.0
+  },
+  "qty_at_directory": {
+    "mean": 0.007293,
+    "std": 0.335117,
+    "min": 0.0,
+    "max": 43.0
+  },
+  "qty_and_directory": {
+    "mean": 0.009723,
+    "std": 0.279086,
+    "min": 0.0,
+    "max": 26.0
+  },
+  "qty_exclamation_directory": {
+    "mean": 0.0035,
+    "std": 0.088128,
+    "min": 0.0,
+    "max": 9.0
+  },
+  "qty_space_directory": {
+    "mean": 0.001702,
+    "std": 0.097602,
+    "min": 0.0,
+    "max": 9.0
+  },
+  "qty_tilde_directory": {
+    "mean": 0.006831,
+    "std": 0.114049,
+    "min": 0.0,
+    "max": 5.0
+  },
+  "qty_comma_directory": {
+    "mean": 0.001531,
+    "std": 0.061364,
+    "min": 0.0,
+    "max": 5.0
+  },
+  "qty_plus_directory": {
+    "mean": 0.002309,
+    "std": 0.130333,
+    "min": 0.0,
+    "max": 19.0
+  },
+  "qty_asterisk_directory": {
+    "mean": 0.007973,
+    "std": 0.420486,
+    "min": 0.0,
+    "max": 60.0
+  },
+  "qty_hashtag_directory": {
+    "mean": 0.0,
+    "std": 0.0,
+    "min": 0.0,
+    "max": 0.0
+  },
+  "qty_dollar_directory": {
+    "mean": 0.00282,
+    "std": 0.134454,
+    "min": 0.0,
+    "max": 10.0
+  },
+  "qty_percent_directory": {
+    "mean": 0.113083,
+    "std": 2.093669,
+    "min": 0.0,
+    "max": 174.0
+  },
+  "directory_length": {
+    "mean": 24.551777,
+    "std": 30.463859,
+    "min": 1.0,
+    "max": 1286.0
+  },
+  "qty_dot_file": {
+    "mean": 0.360348,
+    "std": 0.52481,
+    "min": 0.0,
+    "max": 12.0
+  },
+  "qty_hyphen_file": {
+    "mean": 0.124654,
+    "std": 0.838559,
+    "min": 0.0,
+    "max": 21.0
+  },
+  "qty_underline_file": {
+    "mean": 0.054256,
+    "std": 0.438915,
+    "min": 0.0,
+    "max": 17.0
+  },
+  "qty_slash_file": {
+    "mean": 0.0,
+    "std": 0.0,
+    "min": 0.0,
+    "max": 0.0
+  },
+  "qty_questionmark_file": {
+    "mean": 0.0,
+    "std": 0.0,
+    "min": 0.0,
+    "max": 0.0
+  },
+  "qty_equal_file": {
+    "mean": 0.003549,
+    "std": 0.073376,
+    "min": 0.0,
+    "max": 3.0
+  },
+  "qty_at_file": {
+    "mean": 0.000632,
+    "std": 0.026082,
+    "min": 0.0,
+    "max": 2.0
+  },
+  "qty_and_file": {
+    "mean": 0.003063,
+    "std": 0.057416,
+    "min": 0.0,
+    "max": 3.0
+  },
+  "qty_exclamation_file": {
+    "mean": 0.002236,
+    "std": 0.050712,
+    "min": 0.0,
+    "max": 4.0
+  },
+  "qty_space_file": {
+    "mean": 0.000924,
+    "std": 0.070068,
+    "min": 0.0,
+    "max": 9.0
+  },
+  "qty_tilde_file": {
+    "mean": 0.000632,
+    "std": 0.03689,
+    "min": 0.0,
+    "max": 4.0
+  },
+  "qty_comma_file": {
+    "mean": 0.001215,
+    "std": 0.057907,
+    "min": 0.0,
+    "max": 5.0
+  },
+  "qty_plus_file": {
+    "mean": 0.001653,
+    "std": 0.117287,
+    "min": 0.0,
+    "max": 19.0
+  },
+  "qty_asterisk_file": {
+    "mean": 0.002528,
+    "std": 0.319822,
+    "min": 0.0,
+    "max": 60.0
+  },
+  "qty_hashtag_file": {
+    "mean": 0.0,
+    "std": 0.0,
+    "min": 0.0,
+    "max": 0.0
+  },
+  "qty_dollar_file": {
+    "mean": 0.0,
+    "std": 0.0,
+    "min": 0.0,
+    "max": 0.0
+  },
+  "qty_percent_file": {
+    "mean": 0.080145,
+    "std": 1.959472,
+    "min": 0.0,
+    "max": 174.0
+  },
+  "file_length": {
+    "mean": 7.067383,
+    "std": 19.027982,
+    "min": 0.0,
+    "max": 1232.0
+  },
+  "qty_dot_params": {
+    "mean": 1.256265,
+    "std": 2.608192,
+    "min": 0.0,
+    "max": 23.0
+  },
+  "qty_hyphen_params": {
+    "mean": 0.449879,
+    "std": 1.692221,
+    "min": 0.0,
+    "max": 35.0
+  },
+  "qty_underline_params": {
+    "mean": 0.645244,
+    "std": 1.632151,
+    "min": 0.0,
+    "max": 21.0
+  },
+  "qty_slash_params": {
+    "mean": 0.336163,
+    "std": 1.386902,
+    "min": 0.0,
+    "max": 43.0
+  },
+  "qty_questionmark_params": {
+    "mean": 0.100916,
+    "std": 0.351985,
+    "min": 0.0,
+    "max": 9.0
+  },
+  "qty_equal_params": {
+    "mean": 2.257613,
+    "std": 2.241919,
+    "min": 0.0,
+    "max": 23.0
+  },
+  "qty_at_params": {
+    "mean": 0.215306,
+    "std": 0.437117,
+    "min": 0.0,
+    "max": 10.0
+  },
+  "qty_and_params": {
+    "mean": 1.522231,
+    "std": 2.549228,
+    "min": 0.0,
+    "max": 22.0
+  },
+  "qty_exclamation_params": {
+    "mean": 0.005928,
+    "std": 0.162408,
+    "min": 0.0,
+    "max": 10.0
+  },
+  "qty_space_params": {
+    "mean": 0.000943,
+    "std": 0.050591,
+    "min": 0.0,
+    "max": 4.0
+  },
+  "qty_tilde_params": {
+    "mean": 0.000674,
+    "std": 0.025948,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "qty_comma_params": {
+    "mean": 0.017381,
+    "std": 0.218643,
+    "min": 0.0,
+    "max": 11.0
+  },
+  "qty_plus_params": {
+    "mean": 0.019537,
+    "std": 0.220914,
+    "min": 0.0,
+    "max": 6.0
+  },
+  "qty_asterisk_params": {
+    "mean": 0.001078,
+    "std": 0.051903,
+    "min": 0.0,
+    "max": 4.0
+  },
+  "qty_hashtag_params": {
+    "mean": 0.0,
+    "std": 0.0,
+    "min": 0.0,
+    "max": 0.0
+  },
+  "qty_dollar_params": {
+    "mean": 0.004581,
+    "std": 0.112453,
+    "min": 0.0,
+    "max": 4.0
+  },
+  "qty_percent_params": {
+    "mean": 0.646995,
+    "std": 3.270641,
+    "min": 0.0,
+    "max": 65.0
+  },
+  "params_length": {
+    "mean": 73.925761,
+    "std": 97.138128,
+    "min": 1.0,
+    "max": 4094.0
+  },
+  "tld_present_params": {
+    "mean": 0.293048,
+    "std": 0.455191,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "qty_params": {
+    "mean": 1.869577,
+    "std": 1.742396,
+    "min": 0.0,
+    "max": 23.0
+  },
+  "email_in_url": {
+    "mean": 0.018331,
+    "std": 0.134147,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "time_response": {
+    "mean": 0.920856,
+    "std": 1.437,
+    "min": 0.012066,
+    "max": 38.402411
+  },
+  "domain_spf": {
+    "mean": 0.176937,
+    "std": 0.381618,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "asn_ip": {
+    "mean": 33583.490788,
+    "std": 46126.092468,
+    "min": 3.0,
+    "max": 395754.0
+  },
+  "time_domain_activation": {
+    "mean": 4674.055045,
+    "std": 2602.433112,
+    "min": 1.0,
+    "max": 17775.0
+  },
+  "time_domain_expiration": {
+    "mean": 500.244855,
+    "std": 658.700086,
+    "min": 0.0,
+    "max": 22574.0
+  },
+  "qty_ip_resolved": {
+    "mean": 1.249566,
+    "std": 0.767761,
+    "min": 1.0,
+    "max": 24.0
+  },
+  "qty_nameservers": {
+    "mean": 2.772412,
+    "std": 1.322999,
+    "min": 0.0,
+    "max": 20.0
+  },
+  "qty_mx_servers": {
+    "mean": 1.742428,
+    "std": 1.706705,
+    "min": 0.0,
+    "max": 20.0
+  },
+  "ttl_hostname": {
+    "mean": 6485.80186,
+    "std": 11674.757966,
+    "min": 0.0,
+    "max": 604800.0
+  },
+  "tls_ssl_certificate": {
+    "mean": 0.506447,
+    "std": 0.499961,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "qty_redirects": {
+    "mean": 0.458212,
+    "std": 0.707153,
+    "min": 0.0,
+    "max": 17.0
+  },
+  "url_google_index": {
+    "mean": 0.002428,
+    "std": 0.049213,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "domain_google_index": {
+    "mean": 0.003015,
+    "std": 0.054826,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "url_shortened": {
+    "mean": 0.005482,
+    "std": 0.073841,
+    "min": 0.0,
+    "max": 1.0
+  }
+}

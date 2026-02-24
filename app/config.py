@@ -18,7 +18,7 @@ class Settings(BaseSettings):
 
     # ── App meta ──────────────────────────────────────────────────────────────
     APP_NAME: str = "Phishing Website Detection API"
-    APP_VERSION: str = "2.0.0"
+    APP_VERSION: str = "3.0.0"
     APP_ENV: str = "development"          # development | staging | production
     DEBUG: bool = False
 
@@ -26,17 +26,29 @@ class Settings(BaseSettings):
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8000
 
-    # ── Model versioning ──────────────────────────────────────────────────────
-    MODEL_VERSION: str = "v1"            # Change to "v2" after retraining
+    # ── Model ─────────────────────────────────────────────────────────────────
+    # Deep XGBoost model (the only model in the system)
+    MODEL_VERSION: str = "v1"
     MODEL_DIR: Path = _PROJECT_ROOT / "models"
 
     @property
     def model_path(self) -> Path:
-        return self.MODEL_DIR / f"phishing_{self.MODEL_VERSION}.pkl"
+        return self.MODEL_DIR / f"phishing_deep_{self.MODEL_VERSION}.pkl"
 
     @property
-    def vectorizer_path(self) -> Path:
-        return self.MODEL_DIR / f"vectorizer_{self.MODEL_VERSION}.pkl"
+    def feature_cols_path(self) -> Path:
+        return self.MODEL_DIR / "deep_feature_cols.json"
+
+    @property
+    def feature_stats_path(self) -> Path:
+        return self.MODEL_DIR / "deep_feature_stats.json"
+
+    # ── Classification threshold (tunable without retraining) ────────────────
+    PHISHING_THRESHOLD: float = 0.5      # probability ≥ this → phishing
+
+    # ── Inference circuit breaker ─────────────────────────────────────────────
+    MAX_CONCURRENT: int   = 10           # max simultaneous analyses
+    TIMEOUT_SECS:   float = 15.0         # per-check infrastructure timeout
 
     # ── Logging ───────────────────────────────────────────────────────────────
     LOG_LEVEL: str = "INFO"              # DEBUG | INFO | WARNING | ERROR
@@ -44,10 +56,6 @@ class Settings(BaseSettings):
     # ── Security / Rate limits ────────────────────────────────────────────────
     MAX_REQUEST_BODY_BYTES: int = 8_192  # 8 KB — prevents large-payload attacks
 
-    # ALLOWED_ORIGINS is kept as a plain str to avoid pydantic-settings
-    # trying to JSON-decode bare values like "*" from .env.
-    # Use comma-separated values:  ALLOWED_ORIGINS=*
-    # or multiple:                 ALLOWED_ORIGINS=https://app.com,https://other.com
     ALLOWED_ORIGINS: str = "*"
 
     @property

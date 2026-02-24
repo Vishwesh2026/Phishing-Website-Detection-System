@@ -24,8 +24,10 @@ logger = logging.getLogger(__name__)
 # Thread pool shared across requests (keeps WHOIS off the event loop)
 _executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="whois")
 
-# How long to wait for a WHOIS response before giving up (seconds)
-WHOIS_TIMEOUT_SECONDS: float = 8.0
+# How long to wait for a WHOIS response before giving up (seconds).
+# Raised to 15s — WHOIS servers for ccTLDs & newly-registered domains
+# can be slow; 8s was causing premature fallbacks on legitimate sites.
+WHOIS_TIMEOUT_SECONDS: float = 15.0
 
 
 # ── Type alias for the returned dict ─────────────────────────────────────────
@@ -223,9 +225,11 @@ async def get_domain_info(url: str) -> DomainInfoDict:
 
     except asyncio.TimeoutError:
         logger.warning(
-            "WHOIS timeout after %.1fs for domain=%s", WHOIS_TIMEOUT_SECONDS, domain
+            "WHOIS_TIMEOUT  domain=%s  timeout=%.1fs — returning sentinel values; "
+            "inference continues unblocked",
+            domain, WHOIS_TIMEOUT_SECONDS,
         )
-        return _empty_domain_info(domain, error=f"WHOIS lookup timed out after {WHOIS_TIMEOUT_SECONDS}s")
+        return _empty_domain_info(domain, error=f"WHOIS timed out after {WHOIS_TIMEOUT_SECONDS}s")
 
     except Exception as exc:
         logger.exception("Unexpected error in WHOIS lookup for domain=%s: %s", domain, exc)

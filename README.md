@@ -1,206 +1,203 @@
-# 🛡️ Phishing Website Detection System — v2.0
+# 🛡️ Phishing Website Detection System — v3.0
 
-> **Production-grade, SaaS-ready ML API** for real-time phishing URL detection.  
+> **Production-grade, Infrastructure-Aware ML API** for real-time phishing URL detection.  
 > Built with FastAPI · scikit-learn · XGBoost · Docker · Chrome Extension
+
+![Dashboard Preview](templates/index.html) *(See dashboard locally on port 8000)*
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ Architecture & Core Components
 
-```
+This system uses a single** Deep XGBoost Model** trained on 111 structural and infrastructural features. It performs real-time external networking to validate domains before predicting.
+
+```text
 phishing-detection/
 ├── app/
 │   ├── main.py                    ← FastAPI app factory + middleware
 │   ├── config.py                  ← Pydantic Settings (env-driven)
 │   ├── routers/
-│   │   └── predict.py             ← /api/v1/predict · /health · /reload-model
+│   │   └── predict.py             ← /api/v1/analyze, /api/v1/metrics, /health
 │   ├── services/
-│   │   └── model_service.py       ← Inference + dependency injection
+│   │   ├── model_service.py       ← Inference + drift guard + calibration
+│   │   └── whois_service.py       ← RDAP WHOIS lookups
 │   ├── schemas/
-│   │   └── prediction_schema.py   ← Pydantic v2 request/response models
+│   │   └── prediction_schema.py   ← Pydantic v2 schemas
 │   └── utils/
-│       └── feature_engineering.py ← URLFeatureExtractor + build_pipeline()
+│       └── deep_feature_extractor.py ← Extracts 111 features (Lexical + DNS + SSL)
 ├── models/
-│   ├── phishing_v1.pkl            ← Current model (copy from legacy)
-│   └── phishing_v2.pkl            ← Retrained model (from training/train.py)
+│   └── phishing_deep_v1.pkl       ← Active ML model (Calibrated XGBoost)
 ├── training/
-│   ├── train.py                   ← Multi-model benchmark + versioned saving
-│   └── evaluate.py                ← Standalone evaluation + ASCII metrics
-├── experiments/                   ← JSON logs per training run
-├── Dataset/
-│   └── phishing_site_urls.csv
-├── chrome-extension/
-│   ├── manifest.json              ← MV3 + storage permission
-│   ├── background.js              ← Tab listener + API call + badge
-│   ├── popup.html                 ← Dark UI with risk color coding
-│   └── popup.js                  ← Confidence bar + risk display
+│   └── train_deep.py              ← Model training & evaluation pipeline
+├── experiments/                   
+│   └── metrics.json               ← Latest evaluation metrics (shown on homepage)
+├── templates/
+│   └── index.html                 ← Visual Security Dashboard (Frontend)
+├── chrome-extension/              ← Browser plugin (manifest.json, background.js)
 ├── Dockerfile                     ← Multi-stage production image
-├── gunicorn_config.py
-├── requirements.txt               ← Pinned versions
-└── .env.example
+└── requirements.txt               ← Python dependencies
 ```
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Complete Walkthrough & Quick Start Guide
 
-### 1. Install dependencies
+Follow these exact steps to spin up the entire system from scratch, verify the API, and install the browser extension.
+
+### Step 1: Install Dependencies
+Create an isolated environment and install the required packages.
 ```bash
 python -m venv venv
-venv\Scripts\activate        # Windows
+
+# Windows
+venv\Scripts\activate
+# Linux/macOS
+source venv/bin/activate
+
 pip install -r requirements.txt
 ```
 
-### 2. Copy legacy model to versioned path
+### Step 2: Configure Environment
+Set up your local environment file. 
 ```bash
 # Windows
-copy phishing.pkl models\phishing_v1.pkl
-
+copy .env.example .env
 # Linux / macOS
-cp phishing.pkl models/phishing_v1.pkl
+cp .env.example .env
 ```
+*Note: The default `MODEL_VERSION=v1` inside `.env` is perfectly fine.*
 
-### 3. Configure environment
-```bash
-copy .env.example .env       # Windows
-# Edit .env: set MODEL_VERSION=v1
-```
-
-### 4. Start the API
+### Step 3: Start the Backend Server
+Launch the FastAPI application using Uvicorn.
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
+You should see `Application startup complete` in your terminal. 
 
-Open: http://127.0.0.1:8000/docs
+### Step 4: Verify the Dashboard & Metrics
+1. Open your browser and navigate to: **`http://127.0.0.1:8000/`**
+2. You will see the **SafeSurf Security Dashboard**.
+3. Scroll down to see the **Model Performance** metrics populated dynamically from the latest `experiments/metrics.json` file.
+
+### Step 5: Test the Inference API (CLI)
+You can test the core analysis endpoint directly via `curl` or PowerShell. 
+
+```bash
+# Test a known safe site
+curl -X POST http://127.0.0.1:8000/api/v1/analyze \
+  -H "Content-Type: application/json" \
+  -d "{\"url\": \"https://www.google.com\"}"
+```
+*Expected Output:* A JSON payload with `prediction: "safe"` and a `confidence` score > 95%.
+
+### Step 6: Install the Chrome Extension
+Monitor URLs automatically as you browse the web.
+1. Open Google Chrome and go to exactly **`chrome://extensions/`** in the URL bar.
+2. Toggle **"Developer mode"** ON (top right corner).
+3. Click the **"Load unpacked"** button (top left).
+4. Select the `chrome-extension/` folder located inside this project directory.
+5. The **SafeSurf shield icon** will appear in your Chrome toolbar. Pin it.
+6. Visit a suspicious site—the extension will turn red and warn you!
 
 ---
 
-## 🔌 API Reference
+## 🧪 Training a New Model
 
-### `POST /api/v1/predict`
+If you have an updated `dataset_full.csv` inside `/Dataset/` and want to retrain the XGBoost engine:
+
+```bash
+python -m training.train_deep
+```
+
+**What happens underneath:**
+1. Loads 111 columns of data.
+2. Trains an XGBoost classifier.
+3. Applies Isotonic Calibration for probability realism.
+4. Evaluates on a 20% holdout test set.
+5. Overwrites `experiments/metrics.json` and `models/phishing_deep_v1.pkl`.  
+*(The UI Dashboard automatically updates its metrics upon page refresh!)*
+
+To hot-reload the newly trained model into the running server without restarting uvicorn:
+```bash
+curl -X POST http://127.0.0.1:8000/reload-model
+```
+
+---
+
+## � API Reference
+
+### `POST /api/v1/analyze`
+The core inference endpoint. Retrieves external DNS, WHOIS, and SSL data concurrently via `asyncio`.
+
+**Request:**
 ```json
-// Request
-{ "url": "https://secure-login-verify.xyz/paypal?update=1" }
+{ "url": "https://secure-login.verify-account.xyz/auth" }
+```
 
-// Response
+**Response:**
+```json
 {
-  "url": "https://secure-login-verify.xyz/paypal?update=1",
+  "url": "https://secure-login.verify-account.xyz/auth",
   "prediction": "phishing",
   "label": 1,
-  "confidence": 0.9231,
+  "confidence": 0.9859,
   "risk_level": "HIGH",
-  "model_version": "v1",
-  "latency_ms": 14.3
+  "infrastructure": {
+    "tls_ssl_certificate": 0,
+    "qty_nameservers": 1,
+    "qty_redirects": 3,
+    "qty_ip_resolved": 1
+  },
+  "domain_info": {
+    "domain_age": 2,
+    "whois_available": true,
+    "is_new_domain": true
+  },
+  "degraded": false,
+  "latency_ms": 3983.21,
+  "model_version": "v1"
 }
 ```
 
+### `GET /api/v1/metrics`
+Reads `experiments/metrics.json` safely. Used by the homepage UI to render model accuracy charts without polluting the inference endpoint.
+
 ### `GET /health`
 ```json
-{ "status": "healthy", "model_loaded": true, "model_version": "v1", "app_env": "development" }
-```
-
-### `POST /reload-model`
-Hot-reloads the model without server restart (useful after retraining).
-
----
-
-## 🧪 Train a Better Model
-
-```bash
-# Benchmarks LR · Random Forest · Gradient Boosting · Linear SVM · XGBoost
-python -m training.train
-
-# Evaluate saved model
-python -m training.evaluate --model models/phishing_v2.pkl
-
-# Switch to new model — update .env
-MODEL_VERSION=v2
-# Then hit /reload-model or restart
+{ "status": "healthy", "model_loaded": true, "model_version": "v1" }
 ```
 
 ---
 
-## 🐳 Docker
+## 🐳 Docker Deployment
+
+To deploy the API in an isolated container instance:
 
 ```bash
-# Build
+# Build the image
 docker build -t phishing-detector .
 
-# Run
+# Run the container (mounting the models folder)
 docker run -p 8000:8000 \
-  -e MODEL_VERSION=v1 \
+  -e APP_ENV=production \
   -v $(pwd)/models:/app/models \
   phishing-detector
 ```
 
 ---
 
-## 🔧 Chrome Extension Setup
+## ⚙️ Advanced Configuration (`.env`)
 
-1. Open `chrome://extensions`
-2. Enable **Developer mode**
-3. Click **Load unpacked**
-4. Select the `chrome-extension/` folder
-
-The popup shows:
-- ✅ **SAFE** (green) with confidence %
-- ⚠️ **PHISHING** (red/orange/yellow) with risk level HIGH / MEDIUM / LOW
-- Model version and latency
-
----
-
-## ☁️ Deployment
-
-### Render / Railway (Free Tier)
-```bash
-# render.yaml / railway.toml — set start command:
-gunicorn app.main:app --config gunicorn_config.py
-
-# Environment variables (set in dashboard):
-MODEL_VERSION=v1
-APP_ENV=production
-LOG_LEVEL=INFO
-```
-
-### CI/CD (GitHub Actions — suggested)
-```yaml
-on: [push]
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: docker build -t phishing-detector .
-      - run: docker push your-registry/phishing-detector
-```
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `APP_ENV` | `development` or `production` | `development` |
+| `MODEL_VERSION` | Version tag of the `.pkl` to load | `v1` |
+| `PHISHING_THRESHOLD` | Confidence % required to flag as phishing | `0.5` |
+| `MAX_CONCURRENT_REQUESTS`| Semaphore limit to prevent server denial of service | `50` |
+| `ALLOWED_ORIGINS` | Comma-separated list for CORS middleware | `*` |
+| `MAX_REQUEST_BODY_BYTES`| Prevents massive JSON payloads | `8192` |
 
 ---
 
-## 🔐 Security Notes
-
-| Risk | Mitigation |
-|------|-----------|
-| Pickle arbitrary code execution | Export model with `skops` or ONNX in production |
-| Large payload attacks | `MAX_REQUEST_BODY_BYTES=8192` limit middleware |
-| Rate abuse | Add Nginx rate limiting or use Redis + `slowapi` |
-| Open CORS | Set `ALLOWED_ORIGINS=https://yourapp.com` in production |
-
----
-
-## 📊 Monitoring
-
-- **Structured logs** — every request logged with method, path, status, latency
-- **Confidence logging** — every prediction includes probability score
-- **Prometheus** — uncomment `prometheus-fastapi-instrumentator` in `main.py`
-- **Drift detection** — compare live confidence distributions vs training baseline
-
----
-
-## 📋 Execution Order
-
-1. `pip install -r requirements.txt`
-2. `copy phishing.pkl models\phishing_v1.pkl` (or retrain with `python -m training.train`)
-3. `copy .env.example .env` and set `MODEL_VERSION`
-4. `uvicorn app.main:app --reload`
-5. Test: `curl http://127.0.0.1:8000/health`
-6. Load Chrome extension from `chrome-extension/`
+## � Technical & Pin-to-Pin Documentation
+For an exhaustive, step-by-step breakdown of how the ML model calculates probabilities, how Sentinels (-1) are handled, and the specific 111 features extracted, please read **[Documentation.md](./Documentation.md)**.
