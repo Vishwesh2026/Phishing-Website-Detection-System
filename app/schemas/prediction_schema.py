@@ -73,10 +73,11 @@ class InfrastructureFeatures(BaseModel):
 class AnalyzeResponse(BaseModel):
     """Response for POST /api/v1/analyze (single deep model)."""
     url:            str
-    prediction:     str             # "phishing" | "safe"
-    label:          int             # 1 = phishing, 0 = safe
+    prediction:     str             # "phishing" | "safe" | "invalid" | "unknown"
+    label:          int             # 1 = phishing, 0 = safe, -1 = unknown
     confidence:     float           # calibrated probability (0–1)
-    risk_level:     str             # "HIGH" | "MEDIUM" | "LOW"
+    risk_level:     str             # "HIGH" | "MEDIUM" | "LOW" | "UNKNOWN"
+    reason:         Optional[str]   = None  # e.g. "Domain does not resolve (NXDOMAIN)"
     infrastructure: Optional[InfrastructureFeatures] = None
     domain_info:    Optional[DomainInfo]             = None
     degraded:       bool  = False   # True if circuit breaker tripped

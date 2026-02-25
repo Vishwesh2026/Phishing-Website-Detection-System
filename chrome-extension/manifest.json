@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "Phishing Detector Pro",
-    "description": "Real-time ML-powered phishing detection with confidence scoring",
-    "version": "2.0",
+    "name": "SafeSurf Extension",
+    "description": "Infrastructure-aware phishing detection with DNS Guard and XGBoost",
+    "version": "3.1",
     "permissions": [
         "tabs",
         "activeTab",
@@ -17,7 +17,7 @@
         "service_worker": "background.js"
     },
     "action": {
-        "default_title": "Phishing Detector Pro",
+        "default_title": "SafeSurf Extension",
         "default_popup": "popup.html"
     }
 }

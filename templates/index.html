@@ -225,6 +225,11 @@
             border-color: var(--warn-border);
         }
 
+        .verdict-card.invalid {
+            background: #1a0505;
+            border-color: #7f1d1d;
+        }
+
         .verdict-icon {
             font-size: 2.5rem;
             line-height: 1;
@@ -599,7 +604,18 @@
         <div class="header">
             <div class="header-badge">🛡️ SafeSurf Security Dashboard</div>
             <h1>Phishing <span>Detection</span> System</h1>
-            <p>Infrastructure-aware ML · XGBoost + Isotonic Calibration · 111 signals</p>
+            <p>DNS Guard &middot; URL Canonicalization &middot; XGBoost + Isotonic Calibration &middot; 111 signals</p>
+            <div style="margin-top:0.75rem;display:flex;justify-content:center;gap:0.5rem;flex-wrap:wrap;">
+                <span
+                    style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:99px;padding:0.2rem 0.65rem;font-size:0.7rem;font-weight:600;color:#34d399;">1
+                    · DNS Guard</span>
+                <span
+                    style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:99px;padding:0.2rem 0.65rem;font-size:0.7rem;font-weight:600;color:#60a5fa;">2
+                    · Feature Extraction</span>
+                <span
+                    style="background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);border-radius:99px;padding:0.2rem 0.65rem;font-size:0.7rem;font-weight:600;color:#a78bfa;">3
+                    · ML Inference</span>
+            </div>
         </div>
 
         <!-- Input Card -->
@@ -618,14 +634,23 @@
 
         <!-- ══ Result Section ══════════════════════════════════════════════════ -->
         {% if result %}
-        {% set is_phishing = result.label == 1 %}
+        {% set is_invalid = result.prediction == 'invalid' %}
+        {% set is_phishing = result.label == 1 and not is_invalid %}
         {% set risk = result.risk_level %}
         {% set conf_pct = (result.confidence * 100)|round|int %}
         {% set infra = result.infrastructure %}
         {% set di = result.domain_info %}
 
+        <!-- Invalid domain banner -->
+        {% if is_invalid %}
+        <div class="error-alert" style="background:#450a0a; border-color:#991b1b; color:#fca5a5;">
+            <span>🚨</span>
+            <strong>Domain does not exist</strong> — {{ result.reason }}. This URL is likely malicious or mistyped.
+        </div>
+        {% endif %}
+
         <!-- Degraded banner -->
-        {% if result.degraded %}
+        {% if result.degraded and not is_invalid %}
         <div class="degraded-banner">
             <span>⚠️</span>
             <span><strong>Degraded Mode</strong> — Some infrastructure signals are unavailable. Prediction may be
@@ -634,7 +659,15 @@
         {% endif %}
 
         <!-- 1 ▸ Verdict card -->
-        {% if not is_phishing %}
+        {% if is_invalid %}
+        <div class="verdict-card phishing-high">
+            <div class="verdict-icon">🚨</div>
+            <div>
+                <div class="verdict-title" style="color:#f87171;">INVALID URL — HIGH RISK</div>
+                <div class="verdict-sub">Domain did not resolve (NXDOMAIN)</div>
+            </div>
+        </div>
+        {% elif not is_phishing %}
         <div class="verdict-card safe">
             <div class="verdict-icon">✅</div>
             <div>
@@ -662,10 +695,12 @@
                 <div class="card-title-left">📊 Confidence Score</div>
             </div>
             <div class="bar-row">
-                <span>{{ 'Phishing Probability' if is_phishing else 'Legitimacy Confidence' }}</span>
+                <span>{{ 'Phishing Probability' if is_phishing else 'Legitimacy Confidence' if not is_invalid else
+                    'Deterministic Failure' }}</span>
                 <span class="bar-val">{{ conf_pct }}%</span>
             </div>
-            {% set bar_c = 'safe' if not is_phishing else 'danger' if risk == 'HIGH' else 'warn' %}
+            {% set bar_c = 'safe' if not is_phishing and not is_invalid else 'danger' if risk == 'HIGH' or is_invalid
+            else 'warn' %}
             <div class="bar-track">
                 <div class="bar-fill {{ bar_c }}" style="width:{{ conf_pct }}%"></div>
             </div>
@@ -674,7 +709,8 @@
             <div class="meta-grid">
                 <div class="meta-item">
                     <div class="lbl">Verdict</div>
-                    <div class="val">{{ '⚠ Phishing' if is_phishing else '✓ Safe' }}</div>
+                    <div class="val">{{ '⚠ Invalid' if is_invalid else '⚠ Phishing' if is_phishing else '✓ Safe' }}
+                    </div>
                 </div>
                 <div class="meta-item">
                     <div class="lbl">Risk Level</div>
@@ -682,7 +718,8 @@
                 </div>
                 <div class="meta-item">
                     <div class="lbl">Model</div>
-                    <div class="val">Deep XGBoost {{ result.model_version }}</div>
+                    <div class="val">{{ 'DNS Guard Pre-Check' if is_invalid else 'Deep XGBoost ' ~ result.model_version
+                        }}</div>
                 </div>
                 <div class="meta-item">
                     <div class="lbl">Latency</div>
@@ -697,7 +734,11 @@
                 <div class="card-title-left">🧠 Risk Explanation</div>
             </div>
             <div class="risk-explain">
-                {% if not is_phishing %}
+                {% if is_invalid %}
+                🚨 <strong>Deterministic Failure:</strong> {{ result.reason }}.
+                The DNS guard explicitly blocked this request before ML inference because the domain is unregistered or
+                entirely dead. Real businesses maintain active DNS records.
+                {% elif not is_phishing %}
                 This URL appears <strong>safe</strong>
                 {%- if di and di.whois_available and di.domain_age %} — the domain is <strong>{{ di.domain_age
                     }}</strong> old{% endif %}
@@ -975,6 +1016,8 @@
 
             <div class="training-note">
                 ⚠ Training Metrics — Not Live Accuracy &nbsp;|&nbsp; Evaluated on held-out test set
+                &nbsp;|&nbsp; <a href="/api/v1/metrics" target="_blank"
+                    style="color:var(--accent);text-decoration:none;">View raw JSON ↗</a>
             </div>
         </div>
 
@@ -1004,7 +1047,7 @@
                     { name: 'Accuracy', val: m.accuracy },
                     { name: 'Precision', val: m.precision },
                     { name: 'Recall', val: m.recall },
-                    { name: 'F1 Score', val: m.f1_score },
+                    { name: 'F1 Score', val: m.f1 },
                     { name: 'ROC-AUC', val: m.roc_auc },
                 ];
 
@@ -1027,9 +1070,9 @@
                 /* meta-grid: dataset stats */
                 const grid = document.getElementById('metricsGrid');
                 grid.innerHTML = `
-            <div class="meta-item"><div class="lbl">Model</div><div class="val" style="font-size:0.8rem;">${m.model || '—'}</div></div>
+            <div class="meta-item"><div class="lbl">Model File</div><div class="val" style="font-size:0.78rem;">${m.model_file || m.model || '—'}</div></div>
             <div class="meta-item"><div class="lbl">Dataset Size</div><div class="val">${(m.dataset_size || 0).toLocaleString()}</div></div>
-            <div class="meta-item"><div class="lbl">Features</div><div class="val">${m.n_features || 111}</div></div>
+            <div class="meta-item"><div class="lbl">Features</div><div class="val">${m.feature_count || m.n_features || 111}</div></div>
             <div class="meta-item"><div class="lbl">Trained At</div><div class="val" style="font-size:0.78rem;">${m.trained_at ? m.trained_at.replace('T', ' ') : '—'}</div></div>
         `;
 

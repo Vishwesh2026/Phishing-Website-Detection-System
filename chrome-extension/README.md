@@ -1,89 +1,54 @@
-## 🧩 How to Add the Chrome Extension
+# 🧩 SafeSurf Chrome Extension v3.1
 
-Follow the steps below to load the **Phishing Website Detection** extension into Google Chrome.
+The **SafeSurf Extension** acts as the frontend client for the Phishing Website Detection system. It actively analyzes the URLs of the tabs you visit in real-time.
 
 ---
+
+## 🚀 Features
+- **Real-time Domain & URL Analysis:** Consults the background XGBoost model when a new tab resolves.
+- **DNS Guard Awareness:** Detects NXDOMAIN entries seamlessly. 
+- **Graceful Notification:** Alerts immediately via Chrome notifications when a high-risk or medium-risk phishing site is detected. 
+- **WHOIS Intelligence:** Displays domain registrar, age, and creation data directly from the extension popup.
+
+---
+
+## 🛠️ How to Install (Developer Mode)
 
 ### 1. Open the Chrome Extensions Page
-
 - Open **Google Chrome**
 - In the address bar, navigate to:
-
-```text
-chrome://extensions/
-```
-
-- Press **Enter**
-
----
+  ```text
+  chrome://extensions/
+  ```
 
 ### 2. Enable Developer Mode
-
-- In the **top-right corner**, toggle **Developer mode** **ON**
-- Additional options like **Load unpacked** will appear
-
----
+- In the **top-right corner**, toggle **Developer mode** to ON.
 
 ### 3. Load the Extension
-
-- Click **Load unpacked**
-- Select the folder containing the extension files:
-  - `manifest.json`
-  - `background.js`
-  - `icons/` (if applicable)
-
-- Click **Select Folder**
-
-✅ The extension is now installed locally.
+- Click the **Load unpacked** button.
+- Select the `chrome-extension/` folder inside your project directory.
+- The `SafeSurf Extension` will now appear in your extensions list. Pin the shield icon to your toolbar for easy access!
 
 ---
 
-### 4. Verify Installation
+## 🔌 Running the Backend API
 
-- The extension will appear in the extensions list
-- (Optional) Click the **pin icon** to show it in the Chrome toolbar
-- Open the **Developer Console** (`Ctrl + Shift + I`) to view logs if required
+For the extension to function, the local API must be running. It communicates via HTTP POST requests to `http://127.0.0.1:8000/api/v1/analyze`.
 
----
-
-### 5. Start Using the Extension
-
-- Ensure the FastAPI backend is running:
-
+Start the backend API using:
 ```bash
-uvicorn app:app --reload
+uvicorn app.main:app --reload
 ```
 
-- Open any website (e.g., `https://example.com`)
-- The extension will automatically analyze the website and:
-  - Show a **⚠️ alert** if the site is phishing
-  - Display a **green badge** for legitimate websites
-
 ---
 
-### ⚠️ Notes
+## 🔎 How It Works
 
-- This extension is loaded in **Developer Mode** (local testing)
-- The backend API must be available at:
-
-```text
-http://127.0.0.1:8000/predict
-```
-
-- To publish the extension publicly, it must be uploaded to the **Chrome Web Store**
-
----
-
-### 🛠️ Troubleshooting
-
-- Make sure **Developer mode** is enabled
-- Verify the backend server is running
-- Check extension permissions in `manifest.json`
-
----
-
-If you want, I can also add:
-
-- a **screenshots section**
-- **permissions explanation**
-- **Chrome Web Store deployment steps**
+1. **Background Service Worker (`background.js`)**
+   - Listens to tab updates.
+   - Posts the URL to the local FastAPI backend.
+   - Saves the result locally and changes the dynamic badge icon.
+2. **Popup UI (`popup.html` & `popup.js`)**
+   - Retrieves the cached prediction.
+   - Displays a dynamic UI based on risk mapping (Invalid domain, Safe, or Phishing High/Medium/Low).
+   - Serves an interface presenting domain age, WHOIS intelligence, and a quick redirect key to the comprehensive Deep Analysis dashboard.

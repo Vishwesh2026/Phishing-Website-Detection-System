@@ -1,140 +1,148 @@
-# 🛡️ Phishing Website Detection System — v3.0
+# 🛡️ SafeSurf — Phishing Website Detection System v3.1
+
+[![FastAPI](https://img.shields.io/badge/API-FastAPI-05998b.svg?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![XGBoost](https://img.shields.io/badge/ML-XGBoost-15a0cf.svg?style=flat&logo=xgboost)](https://xgboost.readthedocs.io/)
+[![Python 3.9+](https://img.shields.io/badge/Python-3.9+-3776ab.svg?style=flat&logo=python)](https://www.python.org/)
+[![Docker](https://img.shields.io/badge/Deployment-Docker-2496ed.svg?style=flat&logo=docker)](https://www.docker.com/)
 
 > **Production-grade, Infrastructure-Aware ML API** for real-time phishing URL detection.  
-> Built with FastAPI · scikit-learn · XGBoost · Docker · Chrome Extension
-
-![Dashboard Preview](templates/index.html) *(See dashboard locally on port 8000)*
+> Combines deterministic DNS Guard checks with a calibrated XGBoost ensemble.
 
 ---
 
 ## 🏗️ Architecture & Core Components
 
-This system uses a single** Deep XGBoost Model** trained on 111 structural and infrastructural features. It performs real-time external networking to validate domains before predicting.
+The system uses a **layered, deterministic + probabilistic detection pipeline**. Every URL is challenged at each gate before reaching the ML model.
 
 ```text
 phishing-detection/
 ├── app/
-│   ├── main.py                    ← FastAPI app factory + middleware
-│   ├── config.py                  ← Pydantic Settings (env-driven)
+│   ├── main.py                        ← FastAPI app factory + CORS + body-size middleware
+│   ├── config.py                      ← Pydantic Settings (all values env-driven)
 │   ├── routers/
-│   │   └── predict.py             ← /api/v1/analyze, /api/v1/metrics, /health
+│   │   └── predict.py                 ← /api/v1/analyze, /api/v1/metrics, /health
 │   ├── services/
-│   │   ├── model_service.py       ← Inference + drift guard + calibration
-│   │   └── whois_service.py       ← RDAP WHOIS lookups
+│   │   ├── model_service.py           ← Inference + drift guard + calibration
+│   │   ├── dns_guard.py               ← Deterministic NXDOMAIN pre-check  ← NEW
+│   │   └── whois_service.py           ← RDAP WHOIS lookups & DomainInfo
 │   ├── schemas/
-│   │   └── prediction_schema.py   ← Pydantic v2 schemas
+│   │   └── prediction_schema.py       ← Pydantic v2 schemas (incl. invalid state)
 │   └── utils/
-│       └── deep_feature_extractor.py ← Extracts 111 features (Lexical + DNS + SSL)
+│       ├── deep_feature_extractor.py  ← 111 features: Lexical + DNS + SSL + WHOIS
+│       └── url_normalizer.py          ← Canonical URL form (trailing slashes, case) ← NEW
 ├── models/
-│   └── phishing_deep_v1.pkl       ← Active ML model (Calibrated XGBoost)
+│   ├── phishing_deep_v1.pkl           ← Active production model (Calibrated XGBoost)
+│   ├── deep_feature_cols.json         ← Canonical 111-feature list for production
+│   ├── phishing_deep_clean_v1.pkl     ← Model trained on PhiUSIIL 200k dataset
+│   └── deep_feature_cols_clean.json   ← Feature list for the clean model
 ├── training/
-│   └── train_deep.py              ← Model training & evaluation pipeline
-├── experiments/                   
-│   └── metrics.json               ← Latest evaluation metrics (shown on homepage)
+│   ├── generate_training_dataset.py   ← Phase 1: Extract features from 200k+ URLs  ← NEW
+│   ├── train_deep_clean.py            ← Phase 2: Train XGBoost + IsotonicRegression ← NEW
+│   ├── validate_clean_model.py        ← Phase 3: Sanity-check model on live domains  ← NEW
+│   └── train_deep.py                  ← Original training script (existing dataset)
+├── Dataset/
+│   ├── PhiUSIIL_Phishing_URL_Dataset.csv   ← 235k-URL source dataset
+│   └── generated_training_dataset_clean.csv ← Generated feature CSV for training
+├── experiments/
+│   ├── metrics.json                   ← Production model metrics (shown on homepage)
+│   └── metrics_clean.json             ← Clean model metrics
 ├── templates/
-│   └── index.html                 ← Visual Security Dashboard (Frontend)
-├── chrome-extension/              ← Browser plugin (manifest.json, background.js)
-├── Dockerfile                     ← Multi-stage production image
-└── requirements.txt               ← Python dependencies
+│   └── index.html                     ← Visual Security Dashboard (Jinja2 + JS)
+├── chrome-extension/                  ← Browser plugin (manifest.json, popup, background)
+├── Dockerfile                         ← Multi-stage production image
+└── requirements.txt                   ← Python dependencies
 ```
 
 ---
 
-## 🚀 Complete Walkthrough & Quick Start Guide
+## 🔒 Detection Pipeline (Layered)
 
-Follow these exact steps to spin up the entire system from scratch, verify the API, and install the browser extension.
+```
+URL submitted
+     │
+     ▼ Step 1 — URL Canonicalization (url_normalizer.py)
+     │  Normalize: lowercase scheme/host, remove default ports,
+     │  strip fragments, collapse trailing slashes → consistent input
+     │
+     ▼ Step 2 — DNS Guard (dns_guard.py)                   ← DETERMINISTIC
+     │  Resolve A record for the domain
+     │  ├─ NXDOMAIN / NoAnswer → return "invalid" (HIGH risk) immediately
+     │  └─ Timeout → allow ML pipeline to proceed (degraded mode)
+     │
+     ▼ Step 3 — Feature Extraction (deep_feature_extractor.py)
+     │  Layer A: 97  lexical features (URL character counts, lengths, patterns)
+     │  Layer B: 14  infrastructure features (DNS A/NS/MX, TTL, SSL, WHOIS timing)
+     │           All run concurrently via asyncio.gather with 15s timeout
+     │
+     ▼ Step 4 — ML Inference (model_service.py)            ← PROBABILISTIC
+     │  SimpleImputer replaces -1 sentinels with column medians
+     │  XGBoost traverses its ensemble of 400 decision trees
+     │  IsotonicRegression calibrates raw score → true probability
+     │
+     ▼ Step 5 — Risk Mapping & Response
+        prob ≥ 0.85 → HIGH   |  prob ≥ 0.65 → MEDIUM  |  else → LOW
+        Pydantic validates response shape and returns JSON
+```
 
-### Step 1: Install Dependencies
-Create an isolated environment and install the required packages.
+---
+
+## 🚀 Quick Start
+
+### 1. Install Dependencies
 ```bash
 python -m venv venv
-
-# Windows
-venv\Scripts\activate
-# Linux/macOS
-source venv/bin/activate
-
+venv\Scripts\activate         # Windows
+# source venv/bin/activate    # Linux/macOS
 pip install -r requirements.txt
 ```
 
-### Step 2: Configure Environment
-Set up your local environment file. 
+### 2. Configure Environment
 ```bash
-# Windows
-copy .env.example .env
-# Linux / macOS
-cp .env.example .env
+copy .env.example .env        # Windows
+# cp .env.example .env        # Linux/macOS
 ```
-*Note: The default `MODEL_VERSION=v1` inside `.env` is perfectly fine.*
+The default `MODEL_VERSION=clean_v1` is recommended for the most robust detection.
 
-### Step 3: Start the Backend Server
-Launch the FastAPI application using Uvicorn.
+### 3. Start the Server
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-You should see `Application startup complete` in your terminal. 
+Open **`http://127.0.0.1:8000`** to see the Security Dashboard.
 
-### Step 4: Verify the Dashboard & Metrics
-1. Open your browser and navigate to: **`http://127.0.0.1:8000/`**
-2. You will see the **SafeSurf Security Dashboard**.
-3. Scroll down to see the **Model Performance** metrics populated dynamically from the latest `experiments/metrics.json` file.
+### 4. Test the API
+```powershell
+# Safe site
+Invoke-RestMethod -Method POST http://127.0.0.1:8000/api/v1/analyze `
+  -ContentType application/json -Body '{"url":"https://google.com"}'
 
-### Step 5: Test the Inference API (CLI)
-You can test the core analysis endpoint directly via `curl` or PowerShell. 
+# Known phishing pattern
+Invoke-RestMethod -Method POST http://127.0.0.1:8000/api/v1/analyze `
+  -ContentType application/json -Body '{"url":"https://secure-paypal-verify.xyz/login"}'
 
-```bash
-# Test a known safe site
-curl -X POST http://127.0.0.1:8000/api/v1/analyze \
-  -H "Content-Type: application/json" \
-  -d "{\"url\": \"https://www.google.com\"}"
+# Non-existent domain (triggers DNS Guard)
+Invoke-RestMethod -Method POST http://127.0.0.1:8000/api/v1/analyze `
+  -ContentType application/json -Body '{"url":"https://this-domain-does-not-exist-abc123.com"}'
 ```
-*Expected Output:* A JSON payload with `prediction: "safe"` and a `confidence` score > 95%.
 
-### Step 6: Install the Chrome Extension
-Monitor URLs automatically as you browse the web.
-1. Open Google Chrome and go to exactly **`chrome://extensions/`** in the URL bar.
-2. Toggle **"Developer mode"** ON (top right corner).
-3. Click the **"Load unpacked"** button (top left).
-4. Select the `chrome-extension/` folder located inside this project directory.
-5. The **SafeSurf shield icon** will appear in your Chrome toolbar. Pin it.
-6. Visit a suspicious site—the extension will turn red and warn you!
+### 5. Install Chrome Extension
+1. Open `chrome://extensions/`
+2. Enable **Developer mode** (top right)
+3. Click **Load unpacked** → select the `chrome-extension/` folder
+4. Pin the SafeSurf shield icon in your toolbar
 
 ---
 
-## 🧪 Training a New Model
-
-If you have an updated `dataset_full.csv` inside `/Dataset/` and want to retrain the XGBoost engine:
-
-```bash
-python -m training.train_deep
-```
-
-**What happens underneath:**
-1. Loads 111 columns of data.
-2. Trains an XGBoost classifier.
-3. Applies Isotonic Calibration for probability realism.
-4. Evaluates on a 20% holdout test set.
-5. Overwrites `experiments/metrics.json` and `models/phishing_deep_v1.pkl`.  
-*(The UI Dashboard automatically updates its metrics upon page refresh!)*
-
-To hot-reload the newly trained model into the running server without restarting uvicorn:
-```bash
-curl -X POST http://127.0.0.1:8000/reload-model
-```
-
----
-
-## � API Reference
+## 📊 API Reference
 
 ### `POST /api/v1/analyze`
-The core inference endpoint. Retrieves external DNS, WHOIS, and SSL data concurrently via `asyncio`.
+The core inference endpoint. Runs canonicalization → DNS Guard → feature extraction → ML.
 
 **Request:**
 ```json
 { "url": "https://secure-login.verify-account.xyz/auth" }
 ```
 
-**Response:**
+**Response — Phishing:**
 ```json
 {
   "url": "https://secure-login.verify-account.xyz/auth",
@@ -142,62 +150,125 @@ The core inference endpoint. Retrieves external DNS, WHOIS, and SSL data concurr
   "label": 1,
   "confidence": 0.9859,
   "risk_level": "HIGH",
-  "infrastructure": {
-    "tls_ssl_certificate": 0,
-    "qty_nameservers": 1,
-    "qty_redirects": 3,
-    "qty_ip_resolved": 1
-  },
-  "domain_info": {
-    "domain_age": 2,
-    "whois_available": true,
-    "is_new_domain": true
-  },
+  "reason": null,
+  "infrastructure": { "tls_ssl_certificate": 0, "qty_nameservers": 1, "qty_ip_resolved": 1 },
+  "domain_info": { "domain_age": "2 days", "whois_available": true, "is_new_domain": true },
   "degraded": false,
-  "latency_ms": 3983.21,
-  "model_version": "v1"
+  "latency_ms": 3241.5,
+  "model_version": "clean_v1"
 }
 ```
 
-### `GET /api/v1/metrics`
-Reads `experiments/metrics.json` safely. Used by the homepage UI to render model accuracy charts without polluting the inference endpoint.
+**Response — Non-existent Domain (DNS Guard):**
+```json
+{
+  "url": "https://this-does-not-exist.xyz",
+  "prediction": "invalid",
+  "label": 1,
+  "confidence": 1.0,
+  "risk_level": "HIGH",
+  "reason": "Domain does not resolve (NXDOMAIN)",
+  "infrastructure": null,
+  "domain_info": null,
+  "degraded": false,
+  "latency_ms": 148.2,
+  "model_version": "clean_v1"
+}
+```
+
+**Prediction values:** `"safe"` | `"phishing"` | `"invalid"` | `"unknown"`  
+**Risk levels:** `"HIGH"` | `"MEDIUM"` | `"LOW"` | `"UNKNOWN"`
+
+---
 
 ### `GET /health`
 ```json
-{ "status": "healthy", "model_loaded": true, "model_version": "v1" }
+{ "status": "healthy", "model_loaded": true, "model_version": "clean_v1" }
 ```
+
+### `GET /api/v1/metrics`
+Returns `experiments/metrics.json` — used by the homepage UI to render accuracy metrics.
+
+### `POST /reload-model`
+Hot-reloads the ML model file without restarting uvicorn. Call after replacing the `.pkl`.
+
+---
+
+## 🧠 Training a New Model (3-Phase Pipeline)
+
+For large-scale retraining using the **PhiUSIIL 200k-URL dataset**:
+
+### Phase 1 — Feature Dataset Generation (~10–15 min)
+```bash
+python -m training.generate_training_dataset
+```
+Runs `DeepFeatureExtractor` in **training mode**: lexical + lightweight DNS only  
+(no WHOIS / SSL / HTTP — fast, stable, reproducible). Uses a **domain-level cache** and  
+**40 parallel threads**. Saves checkpoints every 5,000 rows.
+
+Output: `Dataset/generated_training_dataset_clean.csv`
+
+### Phase 2 — Model Training (~5–10 min)
+```bash
+python -m training.train_deep_clean
+```
+- Stratified **70% train / 10% calibration / 20% test** split
+- XGBoost (400 trees, depth=6) + `IsotonicRegression` calibration (prefit pattern —  
+  avoids sklearn 1.7 / XGBoost 2.x `__sklearn_tags__` incompatibility)
+- Prints full metrics; saves model + feature list
+
+Output: `models/phishing_deep_clean_v1.pkl`, `experiments/metrics_clean.json`
+
+### Phase 3 — Sanity Validation
+```bash
+python -m training.validate_clean_model
+```
+Tests google.com, wikipedia.org, github.com against the trained model using the full  
+production extractor and asserts they are **not** classified as phishing.
+
+### Training the Original Model (existing dataset)
+```bash
+python -m training.train_deep
+```
+
+### Hot-reload after training
+```bash
+curl -X POST http://127.0.0.1:8000/reload-model
+```
+
+---
+
+## ⚙️ Configuration (`.env`)
+
+| Variable | Description | Default |
+|---|---|---|
+| `APP_ENV` | `development` or `production` | `development` |
+| `MODEL_VERSION` | Which `.pkl` to load (`phishing_deep_{VERSION}.pkl`) | `clean_v1` |
+| `PHISHING_THRESHOLD` | Probability ≥ this triggers phishing | `0.5` |
+| `MAX_CONCURRENT` | Semaphore — max concurrent analyses | `10` |
+| `TIMEOUT_SECS` | Per-check infrastructure timeout (seconds) | `15.0` |
+| `ALLOWED_ORIGINS` | Comma-separated CORS origins | `*` |
+| `MAX_REQUEST_BODY_BYTES` | Max JSON payload size | `8192` |
+| `LOG_LEVEL` | `DEBUG` / `INFO` / `WARNING` / `ERROR` | `INFO` |
 
 ---
 
 ## 🐳 Docker Deployment
 
-To deploy the API in an isolated container instance:
-
 ```bash
-# Build the image
-docker build -t phishing-detector .
+# Build
+docker build -t safesurf-phishing-detector .
 
-# Run the container (mounting the models folder)
+# Run (mount models so you can update them without rebuilding)
 docker run -p 8000:8000 \
   -e APP_ENV=production \
   -v $(pwd)/models:/app/models \
-  phishing-detector
+  safesurf-phishing-detector
 ```
 
 ---
 
-## ⚙️ Advanced Configuration (`.env`)
+## 📖 Technical Documentation
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `APP_ENV` | `development` or `production` | `development` |
-| `MODEL_VERSION` | Version tag of the `.pkl` to load | `v1` |
-| `PHISHING_THRESHOLD` | Confidence % required to flag as phishing | `0.5` |
-| `MAX_CONCURRENT_REQUESTS`| Semaphore limit to prevent server denial of service | `50` |
-| `ALLOWED_ORIGINS` | Comma-separated list for CORS middleware | `*` |
-| `MAX_REQUEST_BODY_BYTES`| Prevents massive JSON payloads | `8192` |
-
----
-
-## � Technical & Pin-to-Pin Documentation
-For an exhaustive, step-by-step breakdown of how the ML model calculates probabilities, how Sentinels (-1) are handled, and the specific 111 features extracted, please read **[Documentation.md](./Documentation.md)**.
+For an exhaustive breakdown of the 111 features, sentinel policy, calibration mechanics,  
+failure modes, and security architecture, see **[Documentation.md](./Documentation.md)**.

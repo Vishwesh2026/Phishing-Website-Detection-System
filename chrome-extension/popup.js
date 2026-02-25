@@ -1,5 +1,5 @@
 /**
- * popup.js — Phishing Detector Pro v2
+ * popup.js — SafeSurf Extension v3.1
  * ─────────────────────────────────────────────────────────────
  * Reads the cached prediction from chrome.storage.local
  * (written by background.js) and renders the result UI.
@@ -20,14 +20,16 @@ function getDomain(url) {
     }
 }
 
-function riskToCardClass(riskLevel, label) {
+function riskToCardClass(riskLevel, label, isInvalid = false) {
+    if (isInvalid) return "phishing-high";
     if (label === 0) return "safe";
     if (riskLevel === "HIGH") return "phishing-high";
     if (riskLevel === "MEDIUM") return "phishing-medium";
     return "phishing-low";
 }
 
-function riskToBarClass(label, riskLevel) {
+function riskToBarClass(label, riskLevel, isInvalid = false) {
+    if (isInvalid) return "danger";
     if (label === 0) return "safe";
     if (riskLevel === "HIGH") return "danger";
     return "warning";
@@ -39,20 +41,23 @@ function renderResult(data) {
     const content = document.getElementById("content");
     const footer = document.getElementById("footer");
 
-    const isSafe = data.label === 0;
+    const isInvalid = data.prediction === "invalid";
+    const isSafe = data.label === 0 && !isInvalid;
     const confidencePct = Math.round((data.confidence ?? 0) * 100);
     const latency = data.latency_ms != null ? `${data.latency_ms.toFixed(1)} ms` : "—";
     const modelVer = data.model_version ?? "—";
 
     const domain = getDomain(data.url ?? "");
-    const cardClass = riskToCardClass(data.risk_level, data.label);
-    const barClass = riskToBarClass(data.label, data.risk_level);
+    const cardClass = riskToCardClass(data.risk_level, data.label, isInvalid);
+    const barClass = riskToBarClass(data.label, data.risk_level, isInvalid);
 
-    const verdictIcon = isSafe ? "✅" : (data.risk_level === "HIGH" ? "🚨" : "⚠️");
-    const verdictLabel = isSafe ? "SAFE" : `PHISHING — ${data.risk_level} RISK`;
-    const verdictSub = isSafe
-        ? `${confidencePct}% confidence — No threat detected`
-        : `${confidencePct}% phishing probability`;
+    const verdictIcon = isInvalid ? "🚨" : isSafe ? "✅" : (data.risk_level === "HIGH" ? "🚨" : "⚠️");
+    const verdictLabel = isInvalid ? "INVALID DOMAIN" : isSafe ? "SAFE" : `PHISHING — ${data.risk_level} RISK`;
+    const verdictSub = isInvalid
+        ? "Domain does not resolve (NXDOMAIN)"
+        : isSafe
+            ? `${confidencePct}% confidence — No threat detected`
+            : `${confidencePct}% phishing probability`;
 
     // ── WHOIS section ────────────────────────────────────────────────────────
     const di = data.domain_info;
@@ -128,7 +133,7 @@ function renderResult(data) {
         </div>
     `;
 
-    footer.textContent = `Phishing Detector Pro • ${modelVer}`;
+    footer.textContent = `SafeSurf v3.1 • ${modelVer}`;
 
     // Securely attach event listener
     document.getElementById("deepAnalysisBtn")?.addEventListener("click", () => {

@@ -96,12 +96,40 @@ async def _run_analysis(url: str, svc: ModelService) -> dict:
 
     async with sem:
         from app.utils.deep_feature_extractor import extract as extract_features
+        from app.utils.url_normalizer import normalize_url
+        from app.services.dns_guard import domain_exists
+        from urllib.parse import urlparse
+        
+        # Canonicalize URL to prevent distribution mismatch on trailing slashes, case, etc.
+        norm_url = normalize_url(url)
         t_start = time.perf_counter()
+        
+        # Extract domain for pre-check
+        parsed = urlparse(norm_url)
+        domain = parsed.netloc.split(":")[0] or parsed.path.split("/")[0]
+
+        # ── Deterministic pre-check for NXDOMAIN ──────────────────────────────
+        if not await domain_exists(domain):
+            total_ms = round((time.perf_counter() - t_start) * 1000, 2)
+            logger.info("Blocking %s at DNS Guard level (Domain does not exist)", norm_url)
+            return {
+                "url": url,
+                "prediction": "invalid",
+                "label": 1,
+                "confidence": 1.0,
+                "risk_level": "HIGH",
+                "reason": "Domain does not resolve (NXDOMAIN)",
+                "infrastructure": None,
+                "domain_info": None,
+                "degraded": False,
+                "latency_ms": total_ms,
+                "model_version": svc.version or settings.MODEL_VERSION,
+            }
 
         # Run feature extraction + WHOIS concurrently (both are async + network-bound)
         feature_dict, whois_result = await asyncio.gather(
-            extract_features(url, infra_timeout=settings.TIMEOUT_SECS),
-            get_domain_info(url),
+            extract_features(norm_url, infra_timeout=settings.TIMEOUT_SECS),
+            get_domain_info(norm_url),
             return_exceptions=True,
         )
 
@@ -272,7 +300,10 @@ async def get_metrics() -> dict:
     Returns 404 if no training has been run yet.
     Completely separate from /api/v1/analyze — inference is never touched.
     """
-    metrics_path = settings.EXPERIMENTS_DIR / "metrics.json"
+    if "clean" in settings.MODEL_VERSION:
+        metrics_path = settings.EXPERIMENTS_DIR / "metrics_clean.json"
+    else:
+        metrics_path = settings.EXPERIMENTS_DIR / "metrics.json"
     if not metrics_path.exists():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

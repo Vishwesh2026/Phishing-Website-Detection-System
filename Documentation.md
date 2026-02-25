@@ -1,229 +1,381 @@
-# Phishing Detection System: Pin-to-Pin Technical Documentation
+# SafeSurf Phishing Detection System — Technical Documentation
 
-## ━━━━━━━━━━━━━━━━━━━━━━━━━━
-## 1️⃣ System Overview (Non-Technical)
-## ━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-**What problem this system solves:**
-The internet is full of fake websites designed to steal passwords, financial information, and personal data. Detecting these sites instantly before a user enters their information is difficult because attackers constantly change their domain names and layouts.
-
-**Why phishing is dangerous:**
-Phishing attacks are the gateway to almost all major data breaches and financial theft. They bypass technical firewalls by attacking the human element—tricking the user into willingly handing over the keys.
-
-**What happens when a user clicks "Analyze":**
-The system acts like a hyper-vigilant digital detective. In a span of a few seconds, it reads the URL's text, looks up its official registration records (WHOIS), checks its underlying server instructions (DNS), and validates its security certificate (SSL). Our system feeds all these clues into a trained Artificial Intelligence model that outputs a mathematical probability: "Safe" or "Phishing."
-
-**High-level explanation:**
-Instead of relying on a "blacklist" of known bad sites (which is always out of date), this system looks for the *behavioral and infrastructural hallmarks* of phishing. Legitimate businesses build strong, stable, multi-year infrastructure. Scammers build cheap, unstable, disposable infrastructure. The system detects the difference.
+> **Version 3.1** | Production-grade, Infrastructure-Aware Phishing Detection
 
 ---
 
-## ━━━━━━━━━━━━━━━━━━━━━━━━━━
-## 2️⃣ Full Architecture Diagram
-## ━━━━━━━━━━━━━━━━━━━━━━━━━━
+## 1️⃣ System Overview
 
-```text
-[User Browser]
-      │
-      ▼
-┌──────────────────┐      Submits URL (e.g., https://example.com)
-│ Chrome Extension │ ───┐
-└──────────────────┘    │
-                        ▼
-               ┌──────────────────┐
-               │ FastAPI Backend  │   Coordinates traffic & prevents overload
-               └────────┬─────────┘   (Circuit Breaker / Semaphore)
-                        │
-                        ▼
-             ┌────────────────────┐   Gathers 111 pieces of evidence:
-             │DeepFeatureExtractor│   • Lexical (URL char counts)
-             └────────┬───────────┘   • DNS, WHOIS, SSL checks
-                        │             (concurrent async network calls)
-                        ▼
-               ┌──────────────────┐   Decision engine containing trees trained
-               │  XGBoost Model   │   on 88,000 domains. Outputs mathematical
-               │  (Calibrated)    │   probability (0.0 to 1.0)
-               └────────┬─────────┘
-                        │
-                        ▼
-               ┌──────────────────┐   Standardized payload with prediction,
-               │  Response JSON   │   confidence %, risk level, and
-               └────────┬─────────┘   domain intelligence (WHOIS).
-                        │
-                        ▼
-               ┌──────────────────┐   Dashboard (index.html) or extension popup
-               │   UI Rendering   │   visualizes the risk level and flags
-               └──────────────────┘   suspicious infrastructure.
+### What problem this solves
+Phishing websites steal credentials by mimicking legitimate services. Blocklists expire instantly — attackers register new domains hourly. This system detects phishing *structurally* from URL anatomy and DNS/SSL infrastructure, not from a static list.
+
+### Why infrastructure-awareness matters
+Legitimate businesses build stable, multi-year infrastructure:  
+— Domains registered for years, with proper MX/NS/SSL records and low DNS TTLs.  
+Attackers use disposable, cheap infrastructure:  
+— Domains registered hours ago, bare DNS, no SPF, self-signed or absent SSL.
+
+The ML model learns to spot these patterns across 111 quantitative features.
+
+### What happens when a URL is submitted
+```
+1. Normalize URL (case, trailing slash, fragments)
+2. DNS Guard: does the domain actually exist? (NXDOMAIN → immediate block)
+3. Extract 111 features (text analysis + async network calls)
+4. XGBoost model outputs raw probability
+5. IsotonicRegression calibrates to a true confidence score
+6. Risk level assigned and JSON response packaged
 ```
 
 ---
 
-## ━━━━━━━━━━━━━━━━━━━━━━━━━━
-## 3️⃣ Step-by-Step Execution Flow (Pin-to-Pin)
-## ━━━━━━━━━━━━━━━━━━━━━━━━━━
+## 2️⃣ Full Architecture
 
-When a user submits: `https://example.com`
-
-**Step 1: API receives request**
-*   **Simple:** The backend server accepts the URL and checks if it's too busy to handle it right now.
-*   **Technical:** The `POST /api/v1/analyze` endpoint catches the request. It acquires an `asyncio.Semaphore` (circuit breaker) to ensure the server doesn't crash under high concurrent load.
-
-**Step 2: URL cleaning**
-*   **Simple:** Removing prefixes so all URLs look the same to the analyzer.
-*   **Technical:** A regular expression dynamically strips `^https?://(www\.)?` off the URL to ensure it perfectly mirrors the format of the data the ML model was trained on.
-
-**Step 3: Feature extraction (Lexical + DNS + WHOIS + SSL)**
-*   **Simple:** Gathering the clues. Counting characters, checking where the site lives, and asking when it was created.
-*   **Technical:** The `DeepFeatureExtractor` launches synchronous text-parsing (Layers A) and asynchronous network queries (Layer B). It calls `dns.resolver`, the `whois_service` (RDAP), and `ssl.wrap_socket`.
-
-**Step 4: Feature vector construction (111 features)**
-*   **Simple:** Organizing the clues into a strict, numbered checklist.
-*   **Technical:** The ML model cannot process text or JSON—it requires exactly 111 floating-point numbers in a specific sequence. Missing data (e.g., a DNS failure) is assigned `-1` (a sentinel value).
-
-**Step 5: Model prediction**
-*   **Simple:** The AI makes its decision based on the checklist.
-*   **Technical:** The 111-element array is fed to Scikit-Learn. A `SimpleImputer` replaces sentinels with column medians, and the `XGBoost` model traverses its decision trees.
-
-**Step 6: Confidence calculation**
-*   **Simple:** Calculating exactly how sure the AI is about its decision.
-*   **Technical:** The XGBoost raw output enters an `IsotonicRegression` calibration layer, transforming it into a true probability (e.g., `0.9859` = 98.59% confidence).
-
-**Step 7: Risk level mapping**
-*   **Simple:** Categorizing the threat (Low, Medium, or High).
-*   **Technical:** If confidence > 85%, Risk = `HIGH`. If > 65%, Risk = `MEDIUM`. Else `LOW`.
-
-**Step 8: JSON response creation**
-*   **Simple:** Packaging the findings to send back to the user.
-*   **Technical:** A Pydantic schema (`AnalyzeResponse`) validates the output structure and returns it with a `200 OK` HTTP status.
-
-**Step 9: UI displays result**
-*   **Simple:** The webpage or browser extension lights up green or red with an explanation.
-*   **Technical:** JavaScript parses the JSON, rendering the confidence bar, color-coded infrastructure signal dots, and a dynamically generated "Risk Explanation" sentence.
-
----
-
-## ━━━━━━━━━━━━━━━━━━━━━━━━━━
-## 4️⃣ Feature Explanation Section
-## ━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-### A. URL Structure Features
-*   **What it measures:** Characters inside the URL (e.g., number of dots, dashes, slashes, "@" symbols).
-*   **Why it matters:** Phishers use excessively long URLs or subdomains to hide their true destination. Legitimate sites generally use concise URLs.
-*   **Example:** 
-    *   *Safe:* `paypal.com/login` (1 dot, 1 slash)
-    *   *Phishing:* `secure.paypal.com.verify-account-update.xyz/auth/login.php` (5 dots, multiple dashes)
-
-### B. Domain & WHOIS Features
-*   **What it measures:** The registration record of the domain (Age, Expiration).
-*   **Why it matters:** Real companies own their domains for years or decades. Attackers spin up cheap domains that have only existed for a few hours.
-*   **Simple Definition:** *WHOIS* is the public registry that shows who owns a domain and when they bought it.
-
-### C. DNS Infrastructure Features
-*   **What it measures:** The routing rules configured for the domain.
-*   **Why it matters:** Phishers rarely configure robust email infrastructure or redundancy.
-*   **Definitions:** 
-    *   *TTL (Time To Live):* How frequently a domain's IP changes. Fast changes hide phishing servers.
-    *   *MX (Mail Exchange):* Rules dictating email handling. Lack of MX records is suspicious for corporate domains.
-    *   *ASN (Autonomous System Number):* The massive internet provider hosting the site. Some ASNs are notorious for harboring malware.
-    *   *SPF (Sender Policy Framework):* An anti-spam email security protocol.
-
-### D. SSL Certificate Features
-*   **What it measures:** Whether the cryptographic padlock (`https://`) is technically valid and trusted by authorities.
-*   **Why it matters:** Many phishing kits include basic SSL today, but they are often self-signed or hastily configured, resulting in validation failures.
-
-### E. Keyword / Pattern Features
-*   **What it measures:** The presence of words like "server" or "client".
-*   *Note: Extensive checking for keywords like "login", "update", and "secure", as well as Homograph detection (fake characters) and Entropy (randomness scoring), are **Not implemented in the current version**.*
+```text
+  ┌─────────────────┐  ┌────────────────────┐
+  │ Chrome Extension│  │ Security Dashboard │  (index.html — Jinja2 + JS)
+  └────────┬────────┘  └─────────┬──────────┘
+           │  POST /api/v1/analyze│
+           └────────────┬─────────┘
+                        ▼
+           ┌────────────────────────┐
+           │   FastAPI Backend      │  app/main.py
+           │   CORS + Body Limit    │  MAX_REQUEST_BODY_BYTES = 8KB
+           │   Semaphore Guard      │  MAX_CONCURRENT = 10
+           └────────────┬───────────┘
+                        │
+                        ▼  app/routers/predict.py
+           ┌────────────────────────┐
+           │  1. URL Canonicalization│  url_normalizer.py
+           │     lowercase, no frag │
+           └────────────┬───────────┘
+                        │
+                        ▼  app/services/dns_guard.py
+           ┌────────────────────────┐
+           │  2. DNS Guard          │  DETERMINISTIC LAYER
+           │  Resolve A record      │
+           │  NXDOMAIN → invalid ✗  │  returns immediately (< 200ms)
+           │  Timeout  → continue ✓ │  defers to ML with sentinels
+           └────────────┬───────────┘
+                        │  (domain exists)
+                        ▼  app/utils/deep_feature_extractor.py
+           ┌────────────────────────┐
+           │  3. Feature Extraction │  CONCURRENT ASYNC
+           │  Layer A: 97 Lexical   │  (URL text, no I/O)
+           │  Layer B: 14 Infra     │  (DNS + SSL + WHOIS + HTTP)
+           │  Missing → -1 sentinel │
+           └────────────┬───────────┘
+                        │
+                        ▼  app/services/model_service.py
+           ┌────────────────────────┐
+           │  4. ML Inference       │  PROBABILISTIC LAYER
+           │  SimpleImputer (-1→med)│
+           │  XGBoost (400 trees)   │
+           │  IsotonicRegression    │  probability calibration
+           └────────────┬───────────┘
+                        │
+                        ▼
+           ┌────────────────────────┐
+           │  5. Response Assembly  │  app/schemas/prediction_schema.py
+           │  prediction / label    │  "safe"|"phishing"|"invalid"|"unknown"
+           │  confidence / risk     │  "HIGH"|"MEDIUM"|"LOW"
+           │  infrastructure info   │  InfrastructureFeatures
+           │  domain_info (WHOIS)   │  DomainInfo
+           └────────────────────────┘
+```
 
 ---
 
-## ━━━━━━━━━━━━━━━━━━━━━━━━━━
-## 5️⃣ Model Explanation (Non-ML Friendly)
-## ━━━━━━━━━━━━━━━━━━━━━━━━━━
+## 3️⃣ DNS Guard — Deterministic NXDOMAIN Pre-Check
 
-*   **What is XGBoost?** 
-    Imagine a committee of 200 detectives reviewing the 111 clues simultaneously. Detective #1 is great at spotting young domains. Detective #2 learns from #1's mistakes and catches bad SSL certs. XGBoost (Extreme Gradient Boosting) is simply the cumulative, highly optimized vote of these hundreds of "detective" decision trees.
-*   **What is probability?** 
-    The mathematical certainty of an event. E.g., a coin flip is 50%. A phishing probability of 99% means out of 100 statistically identical websites, 99 of them are phishing.
-*   **What is a confidence score?** 
-    How sure the model is about its final answer. If the score is 99%, the model is highly certain. If the score is 51%, the model is essentially guessing.
-*   **What is a threshold?** 
-    The boundary line. In this system, `>= 0.50` means Phishing, and `< 0.50` means Safe.
-*   **What is calibration?** 
-    AI models are naturally overconfident (they love to shout "100% Phishing!"). Calibration is a statistical humbler. It applies a mathematical scale to ensure that when the model says "90% confident," it is historically accurate exactly 90% of the time.
+**File:** `app/services/dns_guard.py`
 
----
+**Purpose:** Stop the ML pipeline from running on domains that physically cannot exist.
 
-## ━━━━━━━━━━━━━━━━━━━━━━━━━━
-## 6️⃣ Security & Stability Design
-## ━━━━━━━━━━━━━━━━━━━━━━━━━━
+**Why this is necessary:**  
+The ML model was trained on real domains (both phishing and legitimate). A non-existent domain (NXDOMAIN) produces a feature vector consisting almost entirely of `-1` sentinels. The model was never trained to handle this and might incorrectly classify it as SAFE purely from the URL text.
 
-*   **Why timeouts are used:** 
-    Querying a suspicious server in Russia might hang indefinitely if the server is offline. We enforce strict "timeouts" (max 15 seconds) so our system abandons the attempt and keeps serving other users without crashing.
-*   **Why sentinel (-1) is used:** 
-    Machine learning models *must* receive numbers. You cannot give them a text error like "DNS Failed." `-1` is a "sentinel value"—a predefined number that the model was trained to recognize as "Data is missing or timed out."
-*   **Why feature parity matters:** 
-    The rules used to train the model must perfectly match the rules used in production. If the model was trained knowing that "Domain Age is measured in Days," but production sends "Domain Age measured in Seconds," the model will panic and flag every site as safe/phishing incorrectly. 
-*   **Why domain age matters:** 
-    It is the single hardest feature for an attacker to fake. You can fake a website's look instantly, but you cannot fake the passage of time on a WHOIS registry.
-*   **Why SSL validation matters:** 
-    Merely checking if a URL starts with `https` is no longer enough (80% of phishing uses HTTPS). True SSL validation checks the *cryptographic trust chain* of the certificate.
+**Behavior:**
 
----
+| DNS Resolution Result | Action | Latency |
+|---|---|---|
+| A record found | Continue to feature extraction | ~50ms |
+| NXDOMAIN (domain doesn't exist) | Return `invalid` / HIGH risk immediately | ~150ms |
+| NoAnswer (domain exists, no A record) | Return `invalid` / HIGH risk immediately | ~150ms |
+| Timeout (network congestion) | Continue to ML (degraded mode) | 2s |
+| Other error | Continue to ML (fail open — security preference) | — |
 
-## ━━━━━━━━━━━━━━━━━━━━━━━━━━
-## 7️⃣ Failure Handling
-## ━━━━━━━━━━━━━━━━━━━━━━━━━━
+**Response for NXDOMAIN:**
+```json
+{
+  "prediction": "invalid",
+  "label": 1,
+  "confidence": 1.0,
+  "risk_level": "HIGH",
+  "reason": "Domain does not resolve (NXDOMAIN)",
+  "infrastructure": null,
+  "domain_info": null,
+  "latency_ms": 148
+}
+```
 
-**Why the system never crashes:**
-The system embraces failure as a normal state of network physics rather than a fatal error.
-
-*   **What happens if DNS fails?** 
-    The DNS function catches the error, sets the IP/MX/NS counts to `-1`, and processing continues.
-*   **What happens if WHOIS fails?** 
-    The WHOIS function catches the error, sets domain age to `-1`, and processing continues.
-*   **What happens if SSL fails?** 
-    The system catches the handshake error, logs it, sets SSL validity to `0` or `-1`, and processing continues.
-    
-**The result:** If *all* external networks fail, the model simply makes a "Degraded" prediction based purely on the `Layer A` structural text of the URL.
+**Security rationale:** Failing open on timeouts is deliberate — a slow DNS response should not prevent a legitimate site from being analyzed. Failing closed (blocking on timeout) would allow attackers to exploit DNS delays as an evasion technique.
 
 ---
 
-## ━━━━━━━━━━━━━━━━━━━━━━━━━━
-## 8️⃣ Performance Characteristics
-## ━━━━━━━━━━━━━━━━━━━━━━━━━━
+## 4️⃣ URL Canonicalization
 
-*   **Expected latency:** 
-    Between **1.5 and 4 seconds** for a standard URL. Under high latency or slow target servers, it will take exactly **15 seconds** before hitting the timeout wall.
-*   **Why deep analysis is slower:** 
-    Lexical analysis (checking text) takes less than 1 millisecond. Deep analysis requires opening sockets to nameservers around the globe, negotiating cryptographic handshakes, and querying international domain registries. You are waiting on the speed of light and fiber optics.
-*   **How caching could improve performance:** 
-    Currently, the system caches infrastructure results for 5 minutes. Incorporating a distributed cache (like Redis) would allow the system to remember WHOIS results globally for days, dropping duplicate analysis latency down to ~20 milliseconds.
+**File:** `app/utils/url_normalizer.py`
 
----
+Applied **before** DNS Guard and feature extraction to ensure consistent input.
 
-## ━━━━━━━━━━━━━━━━━━━━━━━━━━
-## 9️⃣ Limitations
-## ━━━━━━━━━━━━━━━━━━━━━━━━━━
+| Transformation | Before | After |
+|---|---|---|
+| Lowercase scheme + host | `HTTPS://Google.COM` | `https://google.com` |
+| Remove default ports | `https://site.com:443/` | `https://site.com/` |
+| Strip URL fragments | `https://site.com/page#section` | `https://site.com/page` |
+| Normalize trailing slash | `https://site.com/` | `https://site.com` |
 
-*   **What this system CANNOT detect:** 
-    It cannot detect if a perfectly legitimate, 20-year-old WordPress blog (e.g., `healthy-cooking.com`) was hacked yesterday and is invisibly hosting a phishing page at `/wp-content/uploads/login.html`. The domain's WHOIS and DNS will look pristine and safe.
-*   **Why content-based phishing is harder:** 
-    This system does not render the visual webpage (HTML/DOM/Images). Doing so requires a headless browser (like Puppeteer) which takes 5-10 seconds per scan, consumes massive CPU, and is easily evaded by attackers serving blank pages to automated bots.
-*   **Why no system is 100% accurate:** 
-    Phishing detection is an arms race of probabilities. Attackers constantly adapt to detection methods (e.g., by stealing long-standing domains) to blend in with normal internet traffic.
+**Why this matters:** Without normalization, `https://Google.com` and `https://google.com/` would produce different feature vectors and potentially different predictions, making the model brittle to trivial URL variations that attackers could exploit.
 
 ---
 
-## ━━━━━━━━━━━━━━━━━━━━━━━━━━
-## 🔟 Versioning & Future Improvements
-## ━━━━━━━━━━━━━━━━━━━━━━━━━━
+## 5️⃣ Feature Extraction — 111 Features
 
-**Current Version:** Advanced Infrastructure-Aware Hybrid Model (v3)
+**File:** `app/utils/deep_feature_extractor.py`
 
-**Features to add in V2 (Future Pipeline):**
+### Layer A: Lexical Features (97 features, pure text — no I/O)
 
-*   **Entropy Scoring:** Adding mathematical measures of randomness (Shannon Entropy). Domains like `a83kj2x-login-alert.com` have high entropy compared to `microsoft.com`.
-*   **Homoglyph Detection (IDN/Punycode):** Checking for visual tricks where attackers substitute Latin letters with identical-looking Cyrillic or Greek letters (e.g., `g00gle.com` or translating `apple.com` to `xn--80ak6aa92e.com`).
-*   **Extended Keyword Lexicons:** Directly passing counts of high-value bait words (`login`, `verify`, `banking`, `secure`, `webscr`) into the model rather than treating them strictly as generic characters.
-*   **Content-Based Scanning:** Downloading and scoring the HTML DOM for password input boxes that shouldn't exist on standard pages.
+Computed from the URL string alone in < 1ms. Counted across 5 URL segments:  
+`url`, `domain`, `directory`, `file`, `params`
+
+| Feature Group | Examples | Count |
+|---|---|---|
+| Special character counts | `qty_dot_url`, `qty_hyphen_domain`, `qty_slash_directory` | 85 |
+| Length features | `length_url`, `domain_length`, `file_length` | 5 |
+| Domain-specific | `qty_vowels_domain`, `domain_in_ip`, `server_client_domain` | 3 |
+| URL-level | `qty_tld_url`, `email_in_url`, `url_shortened`, `qty_params` | 4 |
+
+### Layer B: Infrastructure Features (14 features, async network)
+
+Executed concurrently via `asyncio.gather` with a 15-second timeout ceiling.
+
+| Feature | Source | Description |
+|---|---|---|
+| `qty_ip_resolved` | DNS A | Number of IP addresses the domain resolves to |
+| `qty_nameservers` | DNS NS | Number of authoritative nameservers |
+| `qty_mx_servers` | DNS MX | Number of mail exchange records |
+| `ttl_hostname` | DNS TTL | DNS time-to-live in seconds |
+| `domain_spf` | DNS TXT | Whether SPF record exists (anti-spam) |
+| `tls_ssl_certificate` | SSL handshake | 1=valid, 0=invalid, -1=error |
+| `time_response` | HTTP HEAD | Latency in seconds to reach the server |
+| `qty_redirects` | HTTP | Number of HTTP redirects followed |
+| `asn_ip` | RDAP | Autonomous System Number of the hosting IP |
+| `time_domain_activation` | WHOIS | Days since domain was registered |
+| `time_domain_expiration` | WHOIS | Days until domain registration expires |
+| `url_google_index` | Sentinel | Always -1 (Google index not checked at runtime) |
+| `domain_google_index` | Sentinel | Always -1 (Google index not checked at runtime) |
+
+### Sentinel Policy (-1)
+
+`-1` is used universally when data is unavailable:
+- DNS timeout → `qty_ip_resolved = -1`
+- WHOIS failure → `time_domain_activation = -1`
+- SSL error → `tls_ssl_certificate = -1`
+
+The ML model is trained on datasets containing these sentinels, so it interprets them correctly as "data unavailable." The `SimpleImputer` at inference replaces them with the training-set column median as a secondary safeguard.
+
+---
+
+## 6️⃣ ML Model — XGBoost + Isotonic Calibration
+
+**File:** `models/phishing_deep_v1.pkl`
+
+### What is XGBoost?
+An ensemble of 400 decision trees trained sequentially. Each tree learns from the errors of the previous one (gradient boosting). Each tree specializes in different feature combinations — one tree may focus on newly-registered domains, another on missing SSL.
+
+### Calibration (IsotonicRegression)
+XGBoost's raw output is a score, not a true probability. `IsotonicRegression` is fitted on a held-out calibration set (prefit approach) to map raw scores to calibrated probabilities. When the model says 90% confidence, this means historically, approximately 90% of URLs with that score were phishing.
+
+**Why prefit over CalibratedClassifierCV(cv=5)?**  
+scikit-learn 1.7 introduced `__sklearn_tags__` on estimator classes. XGBoost 2.x has not yet implemented this, causing `CalibratedClassifierCV(cv=N)` to crash. The prefit approach (manual 3-way split + IsotonicRegression) is mathematically equivalent and fully compatible.
+
+### Model Bundle Structure (pickle)
+```python
+{
+    # Either as a DeepModelBundle object (v1) or a plain dict (clean_v1)
+    "imputer":       SimpleImputer,       # handles -1 sentinels
+    "xgb":           XGBClassifier,       # raw XGBoost
+    "iso_regressor": IsotonicRegression,  # calibration mapping
+    "feature_cols":  list[str],           # (Optional) canonical column names
+}
+```
+
+### Risk Level Mapping
+```
+confidence ≥ 0.85  →  HIGH RISK
+confidence ≥ 0.65  →  MEDIUM RISK
+confidence < 0.65  →  LOW RISK
+prediction = invalid →  HIGH RISK (deterministic, confidence = 1.0)
+```
+
+---
+
+## 7️⃣ Scalable Retraining Pipeline (PhiUSIIL 235k URLs)
+
+Three standalone scripts form the training pipeline:
+
+### Phase 1 — `training/generate_training_dataset.py`
+
+**Training mode** — restricts feature extraction to avoid rate limits and instability:
+
+| Feature | Training Mode | Production Mode |
+|---|---|---|
+| Lexical (97 features) | ✅ Full | ✅ Full |
+| DNS A/NS/MX/TXT | ✅ Synchronous (3s timeout) | ✅ Async (15s timeout) |
+| SSL certificate | ❌ Sentinel -1 | ✅ Live handshake |
+| WHOIS timing | ❌ Sentinel -1 | ✅ RDAP lookup |
+| HTTP latency/redirects | ❌ Sentinel -1 | ✅ Live HEAD request |
+| ASN lookup | ❌ Sentinel -1 | ✅ RDAP lookup |
+
+**Why this is safe:**  
+At production inference, failed checks also return `-1`. The model trains and predicts on the same sentinel distribution, so the decision boundary is consistent.
+
+**Domain-level caching:**  
+All 235k URLs share ~50k–60k unique apex domains. The in-memory `_domain_cache` re-uses DNS results for the same domain across all its URLs — reducing DNS queries by ~75%.
+
+**Concurrency:** `ThreadPoolExecutor(max_workers=40)` with batches of 200.
+
+**Output:** `Dataset/generated_training_dataset_clean.csv` + `models/deep_feature_cols_clean.json`
+
+### Phase 2 — `training/train_deep_clean.py`
+
+```
+235,795 URLs → 70% train (165,056) / 10% calibration (23,578) / 20% test (47,161)
+└── SimpleImputer (sentinel → median) on train+cal+test
+└── XGBClassifier(n_estimators=400, max_depth=6, lr=0.05, subsample=0.8)
+     └── scale_pos_weight = safe_count / phishing_count
+└── IsotonicRegression.fit(cal_raw_proba, y_cal)
+└── Evaluate on test set → metrics_clean.json
+```
+
+**PhiUSIIL label convention note:**  
+PhiUSIIL uses `label=0` for phishing and `label=1` for legitimate — the **opposite** of the standard convention. The dataset generation script correctly inverts this: `0→1 (phishing)`, `1→0 (safe)`.
+
+### Phase 3 — `training/validate_clean_model.py`
+
+Loads `phishing_deep_clean_v1.pkl` and runs the full production extractor on known-safe domains (google.com, wikipedia.org, github.com). Asserts none are predicted as HIGH-confidence phishing.
+
+---
+
+## 8️⃣ Execution Flow — Step by Step (Pin-to-Pin)
+
+**When a user submits `https://secure-paypal-verify.xyz/auth`:**
+
+1. **API receives request** — `POST /api/v1/analyze`  
+   Semaphore check: if 10 analyses are already running, the 11th queues.
+
+2. **URL Canonicalization** — `normalize_url()`  
+   `https://secure-paypal-verify.xyz/auth` → (already canonical, no change)
+
+3. **DNS Guard** — `domain_exists("secure-paypal-verify.xyz")`  
+   If NXDOMAIN: return immediately with `prediction=invalid`.  
+   Otherwise: continue.
+
+4. **Feature extraction** — `extract("https://secure-paypal-verify.xyz/auth")`  
+   Layer A: strip scheme → `secure-paypal-verify.xyz/auth`  
+   Count: `qty_hyphen_domain=2`, `qty_slash_url=1`, `length_url=32`, ...  
+   Layer B (concurrent): DNS returns `qty_ip_resolved=1`, SSL fails → `tls_ssl_certificate=0`, WHOIS→ domain registered 3 days ago → `time_domain_activation=3`.
+
+5. **Feature vector** — `to_vector(feats, feature_cols)` → 111 floats in canonical order.  
+   Any missing → `-1`.
+
+6. **Imputation** — `imputer.transform(vec)` replaces `-1` with training medians.
+
+7. **XGBoost inference** — 400 trees each vote; gradient boosting aggregates.  
+   Raw score: `0.942`
+
+8. **Calibration** — `iso.predict([0.942])` → `0.9859` (calibrated probability)
+
+9. **Risk mapping** — `0.9859 ≥ 0.85` → `risk_level = "HIGH"`
+
+10. **Response** — Pydantic validates and serializes to JSON, including WHOIS `domain_info`.
+
+11. **Frontend** — Jinja2 renders the red verdict card, fills confidence bar, shows WHOIS age, and explains the risk.
+
+---
+
+## 9️⃣ Failure Handling — Graceful Degradation
+
+| Failure | Response |
+|---|---|
+| DNS timeout for domain existence check | Allow ML pipeline to proceed (`dns_guard` returns `True`) |
+| DNS resolution failure during feature extraction | `qty_ip_resolved=-1` (sentinel), extraction continues |
+| WHOIS/RDAP lookup failure | `time_domain_activation=-1`, `domain_info.whois_available=false` |
+| SSL handshake error | `tls_ssl_certificate=-1`, extraction continues |
+| HTTP request timeout | `time_response=-1`, `qty_redirects=-1` |
+| All infrastructure fails | Model predicts from lexical features only, `degraded=true` in response |
+| ML model raises exception | Returns `prediction=unknown`, `risk_level=UNKNOWN` |
+
+**Design principle:** The system never crashes on network errors. Every failure is caught, logged, and converted to a sentinel value. The ML model was trained with sentinels in the data, so it degrades gracefully rather than failing spectacularly.
+
+---
+
+## 🔟 Performance Characteristics
+
+| Operation | Expected Latency |
+|---|---|
+| DNS Guard check (domain exists) | 50–200ms |
+| DNS Guard — NXDOMAIN early return | 50–200ms (no further processing) |
+| Lexical feature extraction | < 1ms |
+| DNS infrastructure features | 100–500ms |
+| SSL handshake | 200ms–4s |
+| WHOIS/RDAP lookup | 500ms–3s |
+| HTTP latency check | 100ms–5s |
+| Full analysis (all infra available) | 1.5–5s |
+| Full analysis (all infra times out) | exactly 15s (timeout wall) |
+| Infra cache hit (same domain, < 5 min) | < 5ms |
+
+**Infrastructure caching:** Results are cached per domain for 5 minutes (`_infra_cache`). Repeated analyses of the same domain within that window return instantly.
+
+---
+
+## 1️⃣1️⃣ Security Architecture
+
+### Why DNS before ML
+If we ran the ML model on NXDOMAIN URLs, the feature vector would be `[-1, -1, -1, ...]` from all infrastructure failures + whatever lexical features the URL text has. The model might classify this as SAFE (the URL text might not look suspicious). The DNS Guard prevents this impossible state from reaching the model.
+
+### Sentinel vs. imputation
+`-1` sentinels are not removed before training. The model sees `-1` values in both training AND inference whenever infrastructure is unavailable. Imputation to median is a secondary safety net only — not a primary strategy.
+
+### Why feature parity is critical
+Training with `time_domain_activation=3` (days) but inferring with seconds would create a massive distribution shift: the model would predict incorrectly on all domains. Every feature in `FEATURE_COLS` has a documented unit and generation rule that is identical between training and inference.
+
+### What this system cannot detect
+- **Compromised legitimate domains:** A 10-year-old legitimate WordPress blog that was hacked today will have pristine WHOIS/DNS and pass every check. Only content-based analysis (headless browser rendering) can detect this.
+- **Fast-flux phishing with valid infrastructure:** If an attacker buys a clean domain months in advance and properly configures WHOIS/SSL, the infrastructure signals will look legitimate. The lexical features are the primary defense in this case.
+- **Visual similarity attacks:** `paypa1.com` (letter O replaced with 1) may have legitimate DNS/SSL. Homoglyph detection is not implemented in v3.1.
+
+---
+
+## 1️⃣2️⃣ Limitations & Future Roadmap
+
+**Not implemented in v3.1:**
+- Entropy scoring (Shannon entropy of domain randomness)
+- Homoglyph / IDN Punycode detection (`аррlе.com` looks like `apple.com`)
+- Keyword lexicon scanning (`login`, `verify`, `secure`, `banking`)
+- Content-based scanning (HTML DOM analysis, password input detection)
+- Distributed Redis cache for WHOIS/DNS results
+
+**Implemented and operational in v3.1:**
+- ✅ DNS Guard (NXDOMAIN pre-check)
+- ✅ URL Canonicalization
+- ✅ 97 lexical + 14 infrastructure features
+- ✅ IsotonicRegression probability calibration
+- ✅ 5-minute domain-level infrastructure caching
+- ✅ Degraded mode (lexical-only prediction when infra fails)
+- ✅ Three-phase 200k-URL retraining pipeline
+- ✅ WHOIS domain intelligence in API response and dashboard
+- ✅ Chrome Extension with badge alerts
+- ✅ Security dashboard with confidence visualization
+- ✅ Docker-ready deployment

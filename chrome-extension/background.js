@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// background.js — Phishing Detector Pro v2
+// background.js — SafeSurf Extension v3.1
 // ─────────────────────────────────────────────────────────────
 // Calls the production-grade /api/v1/predict endpoint.
 // Stores result in chrome.storage.local for the popup to read.

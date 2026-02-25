@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Phishing Detector Pro</title>
+  <title>SafeSurf Extension</title>
   <style>
     /* ── Reset & base ─────────────────────────────────────────── */
     *,
@@ -100,6 +100,11 @@
       border: 1px solid #991b1b;
     }
 
+    .verdict-card.invalid {
+      background: linear-gradient(135deg, #1a0505, #450a0a);
+      border: 1px solid #7f1d1d;
+    }
+
     .verdict-card.phishing-medium {
       background: linear-gradient(135deg, #1c0a00, #7c2d12);
       border: 1px solid #9a3412;
@@ -126,7 +131,6 @@
       flex-shrink: 0;
     }
 
-    .verdict-text {}
 
     .verdict-label {
       font-size: 16px;
@@ -272,7 +276,7 @@
   <div class="header">
     <span class="header-icon">🛡️</span>
     <div>
-      <h1>Phishing Detector Pro</h1>
+      <h1>SafeSurf Extension</h1>
       <p>ML-powered protection</p>
     </div>
   </div>
@@ -284,7 +288,7 @@
     </div>
   </div>
 
-  <div class="footer" id="footer">Powered by scikit-learn + FastAPI</div>
+  <div class="footer" id="footer">Powered by XGBoost + FastAPI</div>
 
   <script src="popup.js"></script>
 </body>

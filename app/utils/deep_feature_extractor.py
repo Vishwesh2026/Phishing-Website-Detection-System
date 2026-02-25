@@ -439,6 +439,10 @@ async def extract(url: str, infra_timeout: float = 8.0) -> dict[str, Any]:
     Returns:
         Dict[str, Any] — 111 features in canonical order.
     """
+    # Canonicalize URL (trailing slashes, fragments, case, default ports)
+    from app.utils.url_normalizer import normalize_url
+    url = normalize_url(url)
+
     # Clean URL: strip scheme and optional www to match training data distribution
     # (where URLs are typically domain.tld/path)
     clean_url = re.sub(r"^https?://(www\.)?", "", url)

@@ -74,8 +74,28 @@ class ModelService:
 
         logger.info("Loading model from %s", model_path)
         t0 = time.perf_counter()
-        self._pipeline = joblib.load(model_path)
+        raw = joblib.load(model_path)
         elapsed = (time.perf_counter() - t0) * 1000
+
+        # ── Bundle normalisation ─────────────────────────────────────────────
+        # train_deep_clean.py saves a plain dict:  {imputer, xgb, iso_regressor, feature_cols}
+        # train_deep.py saves a DeepModelBundle (or CalibratedClassifierCV pipeline).
+        # Wrap the dict format so self._pipeline always has predict_proba().
+        if isinstance(raw, dict) and "xgb" in raw:
+            logger.info("Detected dict-bundle format — wrapping in DeepModelBundle")
+            self._pipeline = DeepModelBundle(
+                imputer=raw["imputer"],
+                xgb=raw["xgb"],
+                iso_regressor=raw["iso_regressor"],
+            )
+            # Prefer the feature list embedded in the bundle itself
+            if "feature_cols" in raw and raw["feature_cols"]:
+                self._feature_cols = raw["feature_cols"]
+                logger.info(
+                    "Feature cols loaded from bundle: %d features", len(self._feature_cols)
+                )
+        else:
+            self._pipeline = raw
 
         # Feature columns (canonical order for vector building)
         if cols_path.exists():

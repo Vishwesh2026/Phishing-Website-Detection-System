@@ -159,6 +159,9 @@ def main() -> None:
     logger.info("=" * 60)
 
     # 1. Load data
+    # Note: Ensure that the URLs in dataset_full.csv were normalized using
+    # app.utils.url_normalizer.normalize_url() before feature extraction.
+    # This prevents distribution mismatch at inference time.
     X, y, feature_cols = load_data(DATASET_PATH)
 
     # 2. Compute and save training distribution stats BEFORE imputation
