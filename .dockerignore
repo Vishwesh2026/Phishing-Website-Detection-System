@@ -1,0 +1,70 @@
+# ─────────────────────────────────────────────────────────────
+# .dockerignore
+# ─────────────────────────────────────────────────────────────
+
+# Git
+.git
+.gitignore
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# Virtual environments
+venv/
+env/
+.venv/
+.env/
+
+# Jupyter notebooks (not needed at runtime)
+*.ipynb
+.ipynb_checkpoints/
+
+# Dev/test tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+tests/
+
+# Large dataset (mount via volume in production)
+Dataset/
+
+# Training scripts (not needed at runtime)
+training/
+
+# Experiments (mount via volume or copy externally)
+experiments/
+
+# Legacy flat files (replaced by models/ directory)
+phishing.pkl
+phishing_mnb.pkl
+vectorizer.pkl
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Templates (served separately in production)
+templates/
+
+# README and docs
+README.md
+RESUME.md
+SECURITY.md
+DEPLOYMENT.md
+MONITORING.md

@@ -1,0 +1,21 @@
+{
+  "accuracy": 0.8553,
+  "precision": 0.8917,
+  "recall": 0.7536,
+  "f1": 0.8169,
+  "roc_auc": 0.9285,
+  "confusion_matrix": [
+    [
+      25122,
+      1848
+    ],
+    [
+      4974,
+      15215
+    ]
+  ],
+  "dataset_size": 235795,
+  "feature_count": 111,
+  "trained_at": "20260225T134701",
+  "model_file": "phishing_deep_clean_v1.pkl"
+}

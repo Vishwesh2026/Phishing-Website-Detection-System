@@ -1,6 +1,45 @@
-fastapi
-uvicorn
-scikit-learn
-pandas
-numpy
-joblib
+# ─────────────────────────────────────────────────────────────
+# requirements.txt — Pinned versions for reproducible builds
+# ─────────────────────────────────────────────────────────────
+
+# ── Web Framework ─────────────────────────────────────────────
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+gunicorn==23.0.0
+python-multipart==0.0.20
+Jinja2==3.1.5
+
+# ── Config & Validation ───────────────────────────────────────
+pydantic==2.10.3
+pydantic-settings==2.7.0
+python-dotenv==1.0.1
+
+# ── ML Core ───────────────────────────────────────────────────
+scikit-learn==1.6.0
+numpy==1.26.4
+pandas==2.2.3
+scipy==1.14.1
+joblib==1.4.2
+
+# ── Gradient Boosting ─────────────────────────────────────────
+xgboost==2.1.3
+
+# ── Imbalanced Learning (SMOTE, etc.) ────────────────────────
+imbalanced-learn==0.12.4
+
+# ── Monitoring (Prometheus) ───────────────────────────────────
+# Uncomment to enable /metrics endpoint:
+# prometheus-fastapi-instrumentator==7.0.0
+
+# ── Logging / Tracing ─────────────────────────────────────────
+structlog==24.4.0
+
+# ── HTTP Client (async, for integration tests) ────────────────
+httpx==0.28.1
+
+# ── WHOIS domain intelligence ─────────────────────────────────────────────────
+python-whois==0.9.4
+
+# ── Stage 2: DNS + ASN infrastructure feature extraction ─────────────────────
+dnspython==2.7.0
+ipwhois==1.3.0

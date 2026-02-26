@@ -1,20 +1,23 @@
 {
     "manifest_version": 3,
-    "name": "Phishing Detector",
-    "description": "Detects phishing websites using ML",
-    "version": "1.0",
+    "name": "SafeSurf Extension",
+    "description": "Infrastructure-aware phishing detection with DNS Guard and XGBoost",
+    "version": "3.1",
     "permissions": [
         "tabs",
         "activeTab",
-        "notifications"
+        "notifications",
+        "storage"
     ],
     "host_permissions": [
-        "http://127.0.0.1:8000/*"
+        "http://127.0.0.1:8000/*",
+        "https://your-production-api.com/*"
     ],
     "background": {
         "service_worker": "background.js"
     },
     "action": {
-        "default_title": "Phishing Detector"
+        "default_title": "SafeSurf Extension",
+        "default_popup": "popup.html"
     }
 }

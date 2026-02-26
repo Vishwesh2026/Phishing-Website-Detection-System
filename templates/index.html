@@ -1,62 +1,1099 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <title>Phishing Website Detection</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SafeSurf — Phishing Detection Dashboard</title>
+    <meta name="description"
+        content="ML-powered infrastructure-aware phishing URL detection with WHOIS domain intelligence" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #080e1a;
+            --surface: #0f1c2e;
+            --surface2: #162235;
+            --surface3: #1d2d42;
+            --border: #1e3a5f;
+            --border-light: #2a4a6b;
+            --text: #e2e8f0;
+            --muted: #7a97b5;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.2);
+            --safe: #10b981;
+            --safe-bg: #022c22;
+            --safe-border: #065f46;
+            --danger: #ef4444;
+            --danger-bg: #2d0a0a;
+            --danger-border: #7f1d1d;
+            --warn: #f59e0b;
+            --warn-bg: #2d1a00;
+            --warn-border: #78350f;
+            --gray: #475569;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 2rem 1rem 5rem;
+        }
+
+        .container {
+            max-width: 860px;
+            margin: 0 auto;
+        }
+
+        /* ── Header ─────────────────────────────────────────────────── */
+        .header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .header-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 99px;
+            padding: 0.35rem 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--accent);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #f1f5f9;
+            letter-spacing: -0.5px;
+            line-height: 1.2;
+        }
+
+        .header h1 span {
+            color: var(--accent);
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            color: var(--muted);
+            margin-top: 0.5rem;
+        }
+
+        /* ── Card ──────────────────────────────────────────────────── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.75rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .card-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--muted);
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+
+        .card-title-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* ── Form ──────────────────────────────────────────────────── */
+        .input-group {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .input-group input {
+            flex: 1;
+            background: var(--bg);
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            padding: 0.8rem 1rem;
+            font-size: 0.95rem;
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .input-group input::placeholder {
+            color: var(--muted);
+        }
+
+        .input-group input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border-radius: 10px;
+            border: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            white-space: nowrap;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.85;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        /* ── Verdict ───────────────────────────────────────────────── */
+        .verdict-card {
+            border-radius: 14px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            margin-bottom: 1.25rem;
+            border: 1px solid;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .verdict-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 0.04;
+            pointer-events: none;
+        }
+
+        .verdict-card.safe {
+            background: var(--safe-bg);
+            border-color: var(--safe-border);
+        }
+
+        .verdict-card.phishing-high {
+            background: var(--danger-bg);
+            border-color: var(--danger-border);
+        }
+
+        .verdict-card.phishing-medium {
+            background: #1c0d00;
+            border-color: #9a3412;
+        }
+
+        .verdict-card.phishing-low {
+            background: var(--warn-bg);
+            border-color: var(--warn-border);
+        }
+
+        .verdict-card.invalid {
+            background: #1a0505;
+            border-color: #7f1d1d;
+        }
+
+        .verdict-icon {
+            font-size: 2.5rem;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .verdict-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+        }
+
+        .verdict-sub {
+            font-size: 0.875rem;
+            margin-top: 0.3rem;
+            opacity: 0.75;
+        }
+
+        /* ── Confidence bar ────────────────────────────────────────── */
+        .bar-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .bar-val {
+            font-weight: 700;
+        }
+
+        .bar-track {
+            height: 8px;
+            background: var(--bg);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 99px;
+            transition: width 0.8s cubic-bezier(.4, 0, .2, 1);
+        }
+
+        .bar-fill.safe {
+            background: linear-gradient(90deg, var(--safe), #34d399);
+        }
+
+        .bar-fill.danger {
+            background: linear-gradient(90deg, var(--danger), #f87171);
+        }
+
+        .bar-fill.warn {
+            background: linear-gradient(90deg, var(--warn), #fbbf24);
+        }
+
+        .bar-fill.accent {
+            background: linear-gradient(90deg, var(--accent), #60a5fa);
+        }
+
+        /* ── Meta grid ─────────────────────────────────────────────── */
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .meta-item {
+            background: var(--surface2);
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+        }
+
+        .meta-item .lbl {
+            font-size: 0.68rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .meta-item .val {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-top: 0.2rem;
+            word-break: break-all;
+        }
+
+        /* ── Infrastructure signal rows ──────────────────────────── */
+        .signal-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .signal-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--surface2);
+            border-radius: 10px;
+            padding: 0.65rem 1rem;
+            border: 1px solid var(--border);
+        }
+
+        .signal-left {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.875rem;
+        }
+
+        .signal-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .dot-green {
+            background: var(--safe);
+            box-shadow: 0 0 6px var(--safe);
+        }
+
+        .dot-red {
+            background: var(--danger);
+            box-shadow: 0 0 6px var(--danger);
+        }
+
+        .dot-yellow {
+            background: var(--warn);
+            box-shadow: 0 0 6px var(--warn);
+        }
+
+        .dot-gray {
+            background: var(--gray);
+        }
+
+        .signal-name {
+            color: var(--muted);
+            font-size: 0.78rem;
+        }
+
+        .signal-value {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        /* ── Collapse toggle ─────────────────────────────────────── */
+        .collapse-toggle {
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            transition: color 0.2s;
+        }
+
+        .collapse-toggle:hover {
+            color: var(--accent);
+        }
+
+        .collapse-body {
+            margin-top: 1.25rem;
+        }
+
+        /* ── Risk explanation ─────────────────────────────────────── */
+        .risk-explain {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            font-size: 0.89rem;
+            line-height: 1.65;
+            color: var(--text);
+        }
+
+        /* ── Degraded banner ─────────────────────────────────────── */
+        .degraded-banner {
+            background: #1c1a00;
+            border: 1px solid #85640b;
+            border-radius: 12px;
+            padding: 0.9rem 1.25rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+            color: #fde68a;
+            margin-bottom: 1.25rem;
+        }
+
+        /* ── Badges ─────────────────────────────────────────────── */
+        .badge {
+            display: inline-block;
+            padding: 0.15rem 0.55rem;
+            border-radius: 99px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            vertical-align: middle;
+        }
+
+        .badge-warn {
+            background: #451a03;
+            color: #fb923c;
+            border: 1px solid #92400e;
+        }
+
+        .badge-safe {
+            background: var(--safe-bg);
+            color: #4ade80;
+            border: 1px solid var(--safe-border);
+        }
+
+        .badge-gray {
+            background: #1e293b;
+            color: #94a3b8;
+            border: 1px solid #334155;
+        }
+
+        .badge-danger {
+            background: var(--danger-bg);
+            color: #f87171;
+            border: 1px solid var(--danger-border);
+        }
+
+        .ns-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-top: 0.5rem;
+        }
+
+        .ns-tag {
+            background: var(--surface3);
+            color: var(--muted);
+            border-radius: 6px;
+            padding: 0.2rem 0.6rem;
+            font-size: 0.75rem;
+        }
+
+        .whois-unavailable {
+            padding: 1rem;
+            background: var(--surface2);
+            border-radius: 10px;
+            color: var(--muted);
+            font-size: 0.875rem;
+            text-align: center;
+        }
+
+        .section-divider {
+            margin: 1.25rem 0;
+            border: none;
+            border-top: 1px solid var(--border);
+        }
+
+        /* ── Metrics section ─────────────────────────────────────── */
+        .metrics-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 0.25rem;
+        }
+
+        .metric-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .metric-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.82rem;
+        }
+
+        .metric-name {
+            color: var(--muted);
+        }
+
+        .metric-val {
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .training-note {
+            font-size: 0.72rem;
+            color: var(--muted);
+            text-align: center;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        /* ── Confusion matrix ────────────────────────────────────── */
+        .cm-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            max-width: 280px;
+            margin-top: 0.5rem;
+        }
+
+        .cm-cell {
+            background: var(--surface3);
+            border-radius: 8px;
+            padding: 0.65rem;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .cm-cell .cm-val {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .cm-cell .cm-lbl {
+            font-size: 0.65rem;
+            color: var(--muted);
+            margin-top: 0.2rem;
+        }
+
+        .cm-cell.tp {
+            border-color: var(--safe-border);
+        }
+
+        .cm-cell.tn {
+            border-color: var(--safe-border);
+        }
+
+        .cm-cell.fp {
+            border-color: var(--danger-border);
+        }
+
+        .cm-cell.fn {
+            border-color: var(--warn-border);
+        }
+
+        /* ── Error / hidden ──────────────────────────────────────── */
+        .error-alert {
+            background: var(--danger-bg);
+            border: 1px solid var(--danger-border);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.25rem;
+            color: #f87171;
+            font-size: 0.9rem;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
 </head>
 
-<body class="bg-white">
+<body>
+    <div class="container">
 
-    <div class="max-w-xl mx-auto mt-20 p-6 border rounded-lg shadow">
-        <h2 class="text-2xl font-bold text-center mb-6">
-            Phishing Website Detection
-        </h2>
+        <!-- Header -->
+        <div class="header">
+            <div class="header-badge">🛡️ SafeSurf Security Dashboard</div>
+            <h1>Phishing <span>Detection</span> System</h1>
+            <p>DNS Guard &middot; URL Canonicalization &middot; XGBoost + Isotonic Calibration &middot; 111 signals</p>
+            <div style="margin-top:0.75rem;display:flex;justify-content:center;gap:0.5rem;flex-wrap:wrap;">
+                <span
+                    style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:99px;padding:0.2rem 0.65rem;font-size:0.7rem;font-weight:600;color:#34d399;">1
+                    · DNS Guard</span>
+                <span
+                    style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:99px;padding:0.2rem 0.65rem;font-size:0.7rem;font-weight:600;color:#60a5fa;">2
+                    · Feature Extraction</span>
+                <span
+                    style="background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);border-radius:99px;padding:0.2rem 0.65rem;font-size:0.7rem;font-weight:600;color:#a78bfa;">3
+                    · ML Inference</span>
+            </div>
+        </div>
 
-        <form id="predictForm" class="space-y-4">
-            <input id="url" type="text" placeholder="https://example.com" required
-                class="w-full border rounded px-3 py-2" />
+        <!-- Input Card -->
+        <div class="card">
+            <form action="/predict" method="POST" class="input-group">
+                <input name="url" type="url" required placeholder="https://example.com" value="{{ url if url else '' }}"
+                    autocomplete="off" autocorrect="off" spellcheck="false" />
+                <button type="submit" class="btn btn-primary">Analyze URL</button>
+            </form>
+        </div>
 
-            <button type="submit" class="w-full bg-indigo-500 text-white py-2 rounded hover:bg-indigo-600">
-                Check Website
-            </button>
-        </form>
+        <!-- Error -->
+        {% if error %}
+        <div class="error-alert"><strong>Error:</strong> {{ error }}</div>
+        {% endif %}
 
-        <p id="result" class="text-center mt-6 font-semibold"></p>
-    </div>
+        <!-- ══ Result Section ══════════════════════════════════════════════════ -->
+        {% if result %}
+        {% set is_invalid = result.prediction == 'invalid' %}
+        {% set is_phishing = result.label == 1 and not is_invalid %}
+        {% set risk = result.risk_level %}
+        {% set conf_pct = (result.confidence * 100)|round|int %}
+        {% set infra = result.infrastructure %}
+        {% set di = result.domain_info %}
+
+        <!-- Invalid domain banner -->
+        {% if is_invalid %}
+        <div class="error-alert" style="background:#450a0a; border-color:#991b1b; color:#fca5a5;">
+            <span>🚨</span>
+            <strong>Domain does not exist</strong> — {{ result.reason }}. This URL is likely malicious or mistyped.
+        </div>
+        {% endif %}
+
+        <!-- Degraded banner -->
+        {% if result.degraded and not is_invalid %}
+        <div class="degraded-banner">
+            <span>⚠️</span>
+            <span><strong>Degraded Mode</strong> — Some infrastructure signals are unavailable. Prediction may be
+                conservative and based on lexical features only.</span>
+        </div>
+        {% endif %}
+
+        <!-- 1 ▸ Verdict card -->
+        {% if is_invalid %}
+        <div class="verdict-card phishing-high">
+            <div class="verdict-icon">🚨</div>
+            <div>
+                <div class="verdict-title" style="color:#f87171;">INVALID URL — HIGH RISK</div>
+                <div class="verdict-sub">Domain did not resolve (NXDOMAIN)</div>
+            </div>
+        </div>
+        {% elif not is_phishing %}
+        <div class="verdict-card safe">
+            <div class="verdict-icon">✅</div>
+            <div>
+                <div class="verdict-title" style="color:#4ade80;">SAFE</div>
+                <div class="verdict-sub">{{ conf_pct }}% confidence — No threat detected</div>
+            </div>
+        </div>
+        {% else %}
+        {% set v_class = 'phishing-high' if risk == 'HIGH' else 'phishing-medium' if risk == 'MEDIUM' else
+        'phishing-low' %}
+        {% set v_icon = '🚨' if risk == 'HIGH' else '⚠️' %}
+        {% set v_color = '#f87171' if risk == 'HIGH' else '#fb923c' if risk == 'MEDIUM' else '#fbbf24' %}
+        <div class="verdict-card {{ v_class }}">
+            <div class="verdict-icon">{{ v_icon }}</div>
+            <div>
+                <div class="verdict-title" style="color:{{ v_color }};">PHISHING — {{ risk }} RISK</div>
+                <div class="verdict-sub">{{ conf_pct }}% phishing probability detected</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 2 ▸ Confidence + Prediction Details -->
+        <div class="card">
+            <div class="card-title">
+                <div class="card-title-left">📊 Confidence Score</div>
+            </div>
+            <div class="bar-row">
+                <span>{{ 'Phishing Probability' if is_phishing else 'Legitimacy Confidence' if not is_invalid else
+                    'Deterministic Failure' }}</span>
+                <span class="bar-val">{{ conf_pct }}%</span>
+            </div>
+            {% set bar_c = 'safe' if not is_phishing and not is_invalid else 'danger' if risk == 'HIGH' or is_invalid
+            else 'warn' %}
+            <div class="bar-track">
+                <div class="bar-fill {{ bar_c }}" style="width:{{ conf_pct }}%"></div>
+            </div>
+
+            <hr class="section-divider">
+            <div class="meta-grid">
+                <div class="meta-item">
+                    <div class="lbl">Verdict</div>
+                    <div class="val">{{ '⚠ Invalid' if is_invalid else '⚠ Phishing' if is_phishing else '✓ Safe' }}
+                    </div>
+                </div>
+                <div class="meta-item">
+                    <div class="lbl">Risk Level</div>
+                    <div class="val">{{ risk }}</div>
+                </div>
+                <div class="meta-item">
+                    <div class="lbl">Model</div>
+                    <div class="val">{{ 'DNS Guard Pre-Check' if is_invalid else 'Deep XGBoost ' ~ result.model_version
+                        }}</div>
+                </div>
+                <div class="meta-item">
+                    <div class="lbl">Latency</div>
+                    <div class="val">{{ result.latency_ms|round(0)|int }} ms</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3 ▸ Risk Explanation -->
+        <div class="card">
+            <div class="card-title">
+                <div class="card-title-left">🧠 Risk Explanation</div>
+            </div>
+            <div class="risk-explain">
+                {% if is_invalid %}
+                🚨 <strong>Deterministic Failure:</strong> {{ result.reason }}.
+                The DNS guard explicitly blocked this request before ML inference because the domain is unregistered or
+                entirely dead. Real businesses maintain active DNS records.
+                {% elif not is_phishing %}
+                This URL appears <strong>safe</strong>
+                {%- if di and di.whois_available and di.domain_age %} — the domain is <strong>{{ di.domain_age
+                    }}</strong> old{% endif %}
+                {%- if infra and infra.tls_ssl_certificate == 1 %}, with a <strong>valid SSL/TLS certificate</strong>{%
+                endif %}
+                {%- if infra and infra.qty_nameservers is not none and infra.qty_nameservers > 1 %} and <strong>{{
+                    infra.qty_nameservers }} name servers</strong>{% endif %}
+                . The model assigned <strong>{{ conf_pct }}% confidence</strong> with {{ risk }} risk level. No
+                significant phishing indicators were detected.
+                {% else %}
+                {% if risk == 'HIGH' %}
+                🚨 <strong>High-confidence phishing detected.</strong>
+                {% elif risk == 'MEDIUM' %}
+                ⚠️ <strong>Suspicious URL with elevated phishing indicators.</strong>
+                {% else %}
+                ⚠️ <strong>Low-confidence phishing signal — proceed with caution.</strong>
+                {% endif %}
+                {%- if di and di.whois_available and di.is_new_domain %} The domain was <strong>recently
+                    registered</strong>, a common phishing trait.{% endif %}
+                {%- if infra and infra.tls_ssl_certificate == 0 %} The SSL certificate is <strong>invalid or
+                    self-signed</strong>.{% endif %}
+                {%- if di and di.whois_available and di.domain_age %} Domain age: <strong>{{ di.domain_age
+                    }}</strong>.{% endif %}
+                The model flagged this URL with <strong>{{ conf_pct }}% phishing probability</strong>. Do not enter
+                credentials on this site.
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 4 ▸ Infrastructure Signals (collapsible) -->
+        {% if infra %}
+        <div class="card">
+            <div class="card-title">
+                <div class="card-title-left">🔐 Infrastructure Signals</div>
+                <button class="collapse-toggle" onclick="toggleInfra(this)">▲ Hide</button>
+            </div>
+            <div class="collapse-body" id="infraBody">
+                <div class="signal-grid">
+
+                    <!-- SSL/TLS -->
+                    {% if infra.tls_ssl_certificate is not none %}
+                    {% set ssl_val = infra.tls_ssl_certificate %}
+                    <div class="signal-row">
+                        <div class="signal-left">
+                            <div
+                                class="signal-dot {% if ssl_val == 1 %}dot-green{% elif ssl_val == 0 %}dot-red{% else %}dot-gray{% endif %}">
+                            </div>
+                            <span class="signal-name">SSL/TLS Certificate</span>
+                        </div>
+                        <span class="signal-value">
+                            {% if ssl_val == 1 %}Valid ✓{% elif ssl_val == 0 %}Invalid ✗{% else %}Unavailable{% endif %}
+                        </span>
+                    </div>
+                    {% endif %}
+
+                    <!-- IP Count -->
+                    {% if infra.qty_ip_resolved is not none %}
+                    {% set ips = infra.qty_ip_resolved %}
+                    <div class="signal-row">
+                        <div class="signal-left">
+                            <div
+                                class="signal-dot {% if ips == -1 %}dot-gray{% elif ips == 0 %}dot-red{% elif ips >= 3 %}dot-yellow{% else %}dot-green{% endif %}">
+                            </div>
+                            <span class="signal-name">Resolved IP Addresses</span>
+                        </div>
+                        <span class="signal-value">{% if ips == -1 %}Unavailable{% else %}{{ ips }}{% endif %}</span>
+                    </div>
+                    {% endif %}
+
+                    <!-- Nameservers -->
+                    {% if infra.qty_nameservers is not none %}
+                    {% set ns = infra.qty_nameservers %}
+                    <div class="signal-row">
+                        <div class="signal-left">
+                            <div
+                                class="signal-dot {% if ns == -1 %}dot-gray{% elif ns == 1 %}dot-yellow{% elif ns == 0 %}dot-red{% else %}dot-green{% endif %}">
+                            </div>
+                            <span class="signal-name">Nameserver Count</span>
+                        </div>
+                        <span class="signal-value">{% if ns == -1 %}Unavailable{% else %}{{ ns }}{% endif %}</span>
+                    </div>
+                    {% endif %}
+
+                    <!-- MX Records -->
+                    {% if infra.qty_mx_servers is not none %}
+                    {% set mx = infra.qty_mx_servers %}
+                    <div class="signal-row">
+                        <div class="signal-left">
+                            <div
+                                class="signal-dot {% if mx == -1 %}dot-gray{% elif mx == 0 %}dot-yellow{% else %}dot-green{% endif %}">
+                            </div>
+                            <span class="signal-name">MX Records</span>
+                        </div>
+                        <span class="signal-value">{% if mx == -1 %}Unavailable{% else %}{{ mx }}{% endif %}</span>
+                    </div>
+                    {% endif %}
+
+                    <!-- SPF Record -->
+                    {% if infra.domain_spf is not none %}
+                    {% set spf = infra.domain_spf %}
+                    <div class="signal-row">
+                        <div class="signal-left">
+                            <div
+                                class="signal-dot {% if spf == 1 %}dot-green{% elif spf == 0 %}dot-yellow{% else %}dot-gray{% endif %}">
+                            </div>
+                            <span class="signal-name">SPF Record</span>
+                        </div>
+                        <span class="signal-value">{% if spf == 1 %}Present{% elif spf == 0 %}Absent{% else %}Unknown{%
+                            endif %}</span>
+                    </div>
+                    {% endif %}
+
+                    <!-- TTL -->
+                    {% if infra.ttl_hostname is not none %}
+                    {% set ttl = infra.ttl_hostname %}
+                    <div class="signal-row">
+                        <div class="signal-left">
+                            <div
+                                class="signal-dot {% if ttl == -1 %}dot-gray{% elif ttl < 60 %}dot-yellow{% else %}dot-green{% endif %}">
+                            </div>
+                            <span class="signal-name">DNS TTL</span>
+                        </div>
+                        <span class="signal-value">{% if ttl == -1 %}Unavailable{% else %}{{ ttl }}s{% endif %}</span>
+                    </div>
+                    {% endif %}
+
+                    <!-- ASN -->
+                    {% if infra.asn_ip is not none %}
+                    {% set asn = infra.asn_ip %}
+                    <div class="signal-row">
+                        <div class="signal-left">
+                            <div class="signal-dot {% if asn == -1 %}dot-gray{% else %}dot-green{% endif %}"></div>
+                            <span class="signal-name">Autonomous System (ASN)</span>
+                        </div>
+                        <span class="signal-value">{% if asn == -1 %}Unavailable{% else %}AS{{ asn }}{% endif %}</span>
+                    </div>
+                    {% endif %}
+
+                    <!-- Redirects -->
+                    {% if infra.qty_redirects is not none %}
+                    {% set redir = infra.qty_redirects %}
+                    <div class="signal-row">
+                        <div class="signal-left">
+                            <div
+                                class="signal-dot {% if redir == -1 %}dot-gray{% elif redir > 3 %}dot-red{% elif redir > 1 %}dot-yellow{% else %}dot-green{% endif %}">
+                            </div>
+                            <span class="signal-name">HTTP Redirects</span>
+                        </div>
+                        <span class="signal-value">{% if redir == -1 %}Unavailable{% else %}{{ redir }}{% endif
+                            %}</span>
+                    </div>
+                    {% endif %}
+
+                    <!-- Google Index -->
+                    <div class="signal-row">
+                        <div class="signal-left">
+                            <div class="signal-dot dot-gray"></div>
+                            <span class="signal-name">Google Indexing</span>
+                        </div>
+                        <span class="signal-value" style="color:var(--muted);font-size:0.78rem;">Runtime Disabled</span>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 5 ▸ Domain Intelligence (WHOIS) -->
+        <div class="card">
+            {% set di = result.domain_info %}
+            <div class="card-title">
+                <div class="card-title-left">
+                    🌐 Domain Intelligence
+                    {% if di and di.whois_available %}
+                    {% if di.is_new_domain %}<span class="badge badge-warn">⚠ New Domain</span>
+                    {% elif di.domain_age %}<span class="badge badge-safe">{{ di.domain_age }}</span>{% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if not di or not di.whois_available %}
+            <div class="whois-unavailable">🔍 WHOIS data not available for this domain.</div>
+            {% else %}
+
+            {% if di.is_new_domain and di.creation_date %}
+            <div
+                style="background:var(--danger-bg);border:1px solid var(--danger-border);border-radius:10px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.875rem;color:#f87171;">
+                🚨 <strong>Newly registered domain</strong> — created {{ di.creation_date }}. New domains are a common
+                phishing indicator.
+            </div>
+            {% endif %}
+
+            {% if di.is_expiring_soon and di.expiration_date %}
+            <div
+                style="background:var(--warn-bg);border:1px solid var(--warn-border);border-radius:10px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.875rem;color:#fbbf24;">
+                ⚠️ <strong>Domain expires soon</strong> — {{ di.expiration_date }}
+            </div>
+            {% endif %}
+
+            <div class="meta-grid">
+                {% if di.domain %}<div class="meta-item">
+                    <div class="lbl">Domain</div>
+                    <div class="val">{{ di.domain }}</div>
+                </div>{% endif %}
+                {% if di.registrar %}<div class="meta-item">
+                    <div class="lbl">Registrar</div>
+                    <div class="val">{{ di.registrar }}</div>
+                </div>{% endif %}
+                {% if di.org %}<div class="meta-item">
+                    <div class="lbl">Organisation</div>
+                    <div class="val">{{ di.org }}</div>
+                </div>{% endif %}
+                {% if di.country %}<div class="meta-item">
+                    <div class="lbl">Country</div>
+                    <div class="val">{{ di.country }}</div>
+                </div>{% endif %}
+                {% if di.creation_date %}<div class="meta-item">
+                    <div class="lbl">Created</div>
+                    <div class="val">{{ di.creation_date }}</div>
+                </div>{% endif %}
+                {% if di.expiration_date %}<div class="meta-item">
+                    <div class="lbl">Expires</div>
+                    <div class="val">{{ di.expiration_date }}</div>
+                </div>{% endif %}
+                {% if di.updated_date %}<div class="meta-item">
+                    <div class="lbl">Last Updated</div>
+                    <div class="val">{{ di.updated_date }}</div>
+                </div>{% endif %}
+                {% if di.domain_age %}<div class="meta-item">
+                    <div class="lbl">Domain Age</div>
+                    <div class="val">{{ di.domain_age }}</div>
+                </div>{% endif %}
+            </div>
+
+            {% if di.status %}
+            <div style="margin-top:1rem;">
+                <div
+                    style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.4rem;">
+                    Domain Status</div>
+                <div class="ns-list">{% for s in di.status[:6] %}<span class="ns-tag">{{ s }}</span>{% endfor %}</div>
+            </div>
+            {% endif %}
+
+            {% if di.name_servers %}
+            <div style="margin-top:1rem;">
+                <div
+                    style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.4rem;">
+                    Name Servers</div>
+                <div class="ns-list">{% for ns in di.name_servers[:8] %}<span class="ns-tag">{{ ns }}</span>{% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% endif %}
+        </div>
+        {% endif %}
+        <!-- ══ end result ══════════════════════════════════════════════════ -->
+
+        <!-- ══ Model Performance Metrics (JS-fetched, always visible) ════ -->
+        <div class="card" id="metricsCard" style="display:none;">
+            <div class="card-title">
+                <div class="card-title-left">📊 Model Performance</div>
+            </div>
+
+            <div class="metrics-bars" id="metricsBars"></div>
+
+            <div class="metrics-grid" id="metricsGrid"></div>
+
+            <div id="confusionMatrixSection" style="display:none; margin-top:1rem;">
+                <div
+                    style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.5rem;">
+                    Confusion Matrix</div>
+                <div class="cm-grid" id="cmGrid"></div>
+            </div>
+
+            <div class="training-note">
+                ⚠ Training Metrics — Not Live Accuracy &nbsp;|&nbsp; Evaluated on held-out test set
+                &nbsp;|&nbsp; <a href="/api/v1/metrics" target="_blank"
+                    style="color:var(--accent);text-decoration:none;">View raw JSON ↗</a>
+            </div>
+        </div>
+
+    </div><!-- /container -->
 
     <script>
-        document.getElementById("predictForm").addEventListener("submit", async (e) => {
-            e.preventDefault();
-
-            const url = document.getElementById("url").value;
-            const result = document.getElementById("result");
-
-            result.textContent = "Checking...";
-
-            try {
-                const response = await fetch("/predict", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ url })
-                });
-
-                const data = await response.json();
-
-                if (data.label === 1) {
-                    result.textContent = "⚠️ This is a phishing website!";
-                    result.className = "text-red-600 text-center font-semibold";
-                } else {
-                    result.textContent = "✅ This website is safe.";
-                    result.className = "text-green-600 text-center font-semibold";
-                }
-            } catch {
-                result.textContent = "❌ Error checking website.";
-                result.className = "text-red-600 text-center font-semibold";
+        /* ── Infra panel collapse ──────────────────────────────────────────── */
+        function toggleInfra(btn) {
+            const body = document.getElementById('infraBody');
+            if (body.style.display === 'none') {
+                body.style.display = '';
+                btn.textContent = '▲ Hide';
+            } else {
+                body.style.display = 'none';
+                btn.textContent = '▼ Show';
             }
-        });
+        }
+
+        /* ── Metrics fetch ─────────────────────────────────────────────────── */
+        (async function loadMetrics() {
+            try {
+                const res = await fetch('/api/v1/metrics');
+                if (!res.ok) return;          // silently hide if not found
+                const m = await res.json();
+
+                const bars = [
+                    { name: 'Accuracy', val: m.accuracy },
+                    { name: 'Precision', val: m.precision },
+                    { name: 'Recall', val: m.recall },
+                    { name: 'F1 Score', val: m.f1 },
+                    { name: 'ROC-AUC', val: m.roc_auc },
+                ];
+
+                /* metric bars */
+                const barsEl = document.getElementById('metricsBars');
+                barsEl.innerHTML = bars.map(b => {
+                    const pct = Math.round((b.val || 0) * 100);
+                    return `
+            <div class="metric-row">
+                <div class="metric-label">
+                    <span class="metric-name">${b.name}</span>
+                    <span class="metric-val">${pct}%</span>
+                </div>
+                <div class="bar-track">
+                    <div class="bar-fill accent" style="width:${pct}%;transition:width 1s ease;"></div>
+                </div>
+            </div>`;
+                }).join('');
+
+                /* meta-grid: dataset stats */
+                const grid = document.getElementById('metricsGrid');
+                grid.innerHTML = `
+            <div class="meta-item"><div class="lbl">Model File</div><div class="val" style="font-size:0.78rem;">${m.model_file || m.model || '—'}</div></div>
+            <div class="meta-item"><div class="lbl">Dataset Size</div><div class="val">${(m.dataset_size || 0).toLocaleString()}</div></div>
+            <div class="meta-item"><div class="lbl">Features</div><div class="val">${m.feature_count || m.n_features || 111}</div></div>
+            <div class="meta-item"><div class="lbl">Trained At</div><div class="val" style="font-size:0.78rem;">${m.trained_at ? m.trained_at.replace('T', ' ') : '—'}</div></div>
+        `;
+
+                /* confusion matrix */
+                const cm = m.confusion_matrix;
+                if (cm && cm.length === 2) {
+                    const [[tn, fp], [fn, tp]] = cm;
+                    document.getElementById('cmGrid').innerHTML = `
+                <div class="cm-cell tn"><div class="cm-val">${tn.toLocaleString()}</div><div class="cm-lbl">True Negative</div></div>
+                <div class="cm-cell fp"><div class="cm-val">${fp.toLocaleString()}</div><div class="cm-lbl">False Positive</div></div>
+                <div class="cm-cell fn"><div class="cm-val">${fn.toLocaleString()}</div><div class="cm-lbl">False Negative</div></div>
+                <div class="cm-cell tp"><div class="cm-val">${tp.toLocaleString()}</div><div class="cm-lbl">True Positive</div></div>
+            `;
+                    document.getElementById('confusionMatrixSection').style.display = '';
+                }
+
+                document.getElementById('metricsCard').style.display = '';
+            } catch (_) {
+                /* metrics unavailable — silently hide the card */
+            }
+        })();
     </script>
 
 </body>
