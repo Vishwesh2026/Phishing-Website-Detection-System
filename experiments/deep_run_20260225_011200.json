@@ -1,0 +1,26 @@
+{
+  "timestamp": "20260225_011200",
+  "model": "XGBoost + CalibratedClassifierCV(isotonic, cv=5)",
+  "dataset": "E:\\4-2\\Vish\\Phishing-Website-Detection-System\\Dataset\\dataset_full.csv",
+  "n_features": 111,
+  "train_size": 56733,
+  "test_size": 17730,
+  "training_seconds": 5.26,
+  "metrics": {
+    "accuracy": 0.9681,
+    "precision": 0.9531,
+    "recall": 0.9548,
+    "f1": 0.954,
+    "roc_auc": 0.9948,
+    "confusion_matrix": [
+      [
+        11312,
+        288
+      ],
+      [
+        277,
+        5853
+      ]
+    ]
+  }
+}
